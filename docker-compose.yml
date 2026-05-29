@@ -1,0 +1,13 @@
+services:
+  web:
+    build: .
+    container_name: labz-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+    user: "1001:1002"
+    volumes:
+      - .:/app
+      - /app/node_modules
