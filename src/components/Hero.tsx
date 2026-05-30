@@ -10,7 +10,7 @@ export default function Hero() {
           {/* Colonna Sinistra */}
           <div className="space-y-6 w-full text-center lg:text-left">
             <h1 className="text-7xl md:text-9xl font-black text-white tracking-tighter leading-none">
-              LAB<span className="text-emerald-500">Z</span>
+              Lab<span className="text-emerald-500">Z</span>
               <div className="text-5xl md:text-7xl mt-2 font-black text-transparent" 
                   style={{ WebkitTextStroke: '1px #10b981', letterSpacing: '-0.05em' }}>
                 .COM
