@@ -1,10 +1,47 @@
 ---
-title: "STP & RSTP Convergence"
+title: "Configurazione STP e RSTP"
 date: "2026-05-30"
+excerpt: "Configurazione STP e RSTP su switch cisco."
 tech: "CISCO"
-excerpt: "Analisi della convergenza tra Spanning Tree Protocol classico e Rapid Spanning Tree (802.1w)."
-tags: ["NETWORKING", "SWITCHING", "STP"]
+tags: ["NETWORKING", "SWITCHING", "CISCO"]
 ---
 
-# STP & RSTP Convergence
+# Configurazione STP e RSTP (Rapid)
 
+<Note>
+Nella maggior parte degli switch moderni, STP è attivo di default, quindi spesso il lavoro dell'amministratore consiste nell'ottimizzarlo per assicurarsi che lo switch più potente diventi il centro della rete.
+</Note>
+
+<StepCard label="A" title="Selezione del Root Bridge (Priorità)">
+
+Per evitare che uno switch vecchio o lento venga eletto come "capo" della rete, devi forzare la priorità. La priorità di default è **32768**. Più basso è il valore, più alta è la priorità.
+
+<Terminal code="# Entra in configurazione
+Switch# configure terminal
+# Imposta lo switch come Root Bridge
+Switch(config)# spanning-tree vlan 1 priority 4096 
+# I valori devono essere multipli di 4096. "/>
+
+</StepCard>
+
+<StepCard label="B" title="Come decidere la priorità (Topologia)">
+
+Non basarti mai sul caso. Se lasci il default **32768** su tutti, lo switch con il MAC Address più basso vincerà l'elezione. Spesso però il MAC address più basso appartiene allo switch più vecchio e lento della rete: questo creerebbe un collo di bottiglia disastroso.
+
+La tua logica deve essere:
+
+Identifica lo switch con la larghezza di banda maggiore (es. quello con porte a 10Gbps) e assegna priorità 4096.
+Identifica lo switch di riserva e assegna priorità **8192**.
+
+<Terminal code="# Se vuoi che lo Switch-A sia il primario:
+Switch(config)# spanning-tree vlan 1 priority 4096
+# Se vuoi che lo Switch-B sia il backup:
+Switch(config)# spanning-tree vlan 1 priority 8192 "/>
+
+</StepCard>
+
+<Note>
+Trucco Rapido: Sui sistemi Cisco esiste un comando scorciatoia che calcola i valori per te senza dover ricordare i multipli di 4096:
+spanning-tree vlan 1 root primary (imposta a 24576 o meno per battere gli altri).
+spanning-tree vlan 1 root secondary (imposta a 28672).
+</Note>

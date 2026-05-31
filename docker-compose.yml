@@ -7,7 +7,11 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=development
-    user: "1001:1002"
     volumes:
-      - .:/app
+      - type: bind
+        source: .
+        target: /app
       - /app/node_modules
+      - /app/.next
+      
+    command: npm run dev

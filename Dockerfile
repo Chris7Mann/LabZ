@@ -4,19 +4,16 @@ RUN apt-get update && apt-get install -y libc6 && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Prepariamo la cartella e la cache
-RUN mkdir -p /app/node_modules /app/.npm && \
-    chown -R 1001:1002 /app
+# Non forzare chown su tutto, usiamo root per lo sviluppo locale
+# Rimuovi le istruzioni USER e chown eccessive che causano conflitti
+COPY package*.json ./
 
-USER 1001:1002
-
-# Configura npm per usare la cartella locale invece di quella di sistema
-ENV npm_config_cache=/app/.npm
-
-COPY --chown=1001:1002 package*.json ./
 RUN npm install
 
-COPY --chown=1001:1002 . .
+# Copiamo il resto (Next.js scriverà in /app/.next come root, senza blocchi)
+COPY . .
 
 EXPOSE 3000
+
+# Usiamo 'npm run dev' direttamente
 CMD ["npm", "run", "dev"]
