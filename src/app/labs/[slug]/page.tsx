@@ -5,11 +5,15 @@ import { MDXRemote } from 'next-mdx-remote/rsc';
 import { StepCard } from '@/components/mdx/StepCard';
 import { Note } from '@/components/mdx/Note';
 import { Terminal } from '@/components/mdx/Terminal';
+import { Text } from "@/components/mdx/Text";
+import { SectionTitle } from "@/components/mdx/SectionTitle";
 
 const components = {
   StepCard,
   Note,
   Terminal,
+  Text,
+  SectionTitle
 };
 
 

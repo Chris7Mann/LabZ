@@ -1,10 +1,143 @@
 ---
-title: "Router on a Stick"
+title: "ROAS & Switching"
 date: "2026-05-30"
 tech: "CISCO"
 excerpt: "Il (ROAS) è una tecnica di rete che permette a un singolo router di instradare il traffico tra più VLAN."
-tags: ["ROUTING", "CISCO"]
+tags: ["ROUTING", "VLAN", "CISCO"]
 ---
+<Text>
+Guida tecnica di riferimento rapido per la configurazione di dispositivi di rete
+Creazione di VLAN e implementazione del metodo ROAS per Instradare il traffico tra più VLAN.
+</Text>
 
-# Router on a Stick
-Instradare il traffico tra più VLAN.
+<StepCard label="A" title="Configurazione Switch (VLAN & Access)">
+Creazione della VLAN e assegnazione ad una porta in modalità access.
+
+<Terminal code="Switch(config)# vlan 10
+Switch(config-vlan)# name (nameIT_Department)
+# Assegna la VLAN 10 alla porta fa0/1
+Switch(config)# interface fa0/1
+Switch(config-if)# switchport mode access
+Switch(config-if)# switchport access vlan 10"/>
+
+</StepCard>
+
+<StepCard label="B" title="Configurazione delle interfacce verso altri switch in Trunk">
+Configurazione dell'interfaccia verso altri switch in modalità Trunk.
+
+<Terminal code="switchport mode trunk
+# Su questa porta trunk possono passare SOLO le VLAN 10 e 20
+switchport trunk allowed vlan 10,20
+#perchè? - fai passare solo VLAN necessarie (controllo) , eviti traffico inutile (sicurezza), meno broadcast (performance)
+
+
+# Aggiungere VLAN senza cancellare le precedenti
+switchport trunk allowed vlan add 30
+
+# Rimuovere una VLAN
+switchport trunk allowed vlan remove 20
+
+# Rimuovere tutte le VLAN
+switchport trunk allowed vlan none 
+
+# Permettere tutte le VLAN
+switchport trunk allowed vlan all"/>
+
+<Note>
+**Nota Importante:** Quando ci sono più switch nel router on a stick,devi mettere sempre le porte che collegano i vari switch 
+fra loro in trunk e quando ci sarà la ridondanza con tanti switch su cui passano i pacchetti devi creare su tutti gli switch 
+le varie vlan (anche se non colleghi nessuna porta delle vlan interessate su quello switch) altrimenti scarterebbe i pacchetti 
+che gli arrivano di quelle vlan se non le crei sopra ognuno di loro
+</Note>
+
+</StepCard>
+
+<StepCard label="C" title="Verifica Configurazione">
+Verifichiamo le configurazioni delle VLAN.
+
+<Terminal code="
+Switch# show vlan brief
+Switch# show interfaces fa0/1 switchport"/>
+
+</StepCard>
+
+<StepCard label="D" title="Configurazione Router (Subinterfaces)">
+<Terminal code="
+
+# Attiva l'interfaccia fisica
+interface GigabitEthernet0/0
+# accende la porta
+no shutdown 
+exit
+ # Attiva l'interfaccia virtuale sarebbe la porta del router + l'id delle vlan
+Router(config)# interface gig0/1.10 
+# incapsulare il traffico con il tag 10
+Router(config-if)# encapsulation dot1Q 10
+# assegna l'indirizzo ip alla sub-interfaccia 
+Router(config-if)# ip address 192.168.0.1 255.255.255.240
+# accende la porta 
+Router(config-if)# no shutdown"/>
+
+</StepCard>
+
+<StepCard label="E" title="Configurazione Trunk lato Switch verso il Router">
+Comandi per mettere in trunk la porta dello switch che si collega al router.
+<Terminal code="
+# Esempio porta connessa al router
+Switch(config)# interface fa0/24 
+Switch(config-if)# switchport mode trunk"/>
+
+<Note>
+**Attenzione:** Eseguire questa configurazione solo dopo aver attivato l'interfaccia fisica del router con il comando **no shutdown**, 
+per assicurarsi che la porta sia attiva e per evitare bug di sincronizzazione in Packet Tracer
+</Note>
+
+</StepCard>
+
+<StepCard label="F" title="Verifica Configurazione sul Router">
+Verifichiamo le configurazioni del router.
+<Terminal code="Router# show ip interface brief"/>
+
+</StepCard>
+
+<SectionTitle>Router on a Stick</SectionTitle>
+<Text>
+Il **"Router on a stick"** (ROAS) è una tecnica di rete che permette a un singolo router di instradare il traffico 
+tra più VLAN (reti virtuali) utilizzando una sola interfaccia fisica. Riduce i costi hardware ma può creare strozzature di banda, 
+poiché tutto il traffico inter-VLAN deve passare attraverso un unico collegamento.
+</Text>
+
+<StepCard label="A" title="Per far collegare due Router on a Stick">
+Assegnare gli ip + maschera (essendo due puoi mettere /30) alle porte dei 2 router che si collegheranno fra di loro.
+
+</StepCard>
+
+<StepCard label="B" title="Impostare la Default Route sul Router">
+Quando dietro il secondo router ci sono tutte le reti che il router 1 non conosce, possiamo mettere un comando di **"default"** 
+che in pratica fa capire al router che tutte le reti che non trova sul router 1, 
+stanno dietro il router 2 (così evitiamo di dover mettere ogni singola route per ogni rete vlan che abbiamo).
+
+<Terminal code="
+#indirizzo del prossimo router/multy. l. switch che c'è collegato
+ip route 0.0.0.0 0.0.0.0"/>
+
+</StepCard>
+
+<StepCard label="C" title="In caso di rete in sequenza di blocchi">
+
+<Terminal code="
+#! Sintassi generica: ip route [IP DESTINAZIONE] [SUBNET_MASK] [IP PORTA ROUTER 2]
+Router1> enable 
+Router1# configure terminal 
+Router1(config)# ip route 192.168.1.0 255.255.255.0 10.0.0.1 
+Router1(config)# ip route 192.168.2.0 255.255.255.0 10.0.0.1  
+Router1(config)# ip route 192.168.3.0 255.255.255.0 10.0.0.1  
+Router1(config)# exit "/>
+
+<Note>
+**Suggerimento:** se si vuole fare le route in modo più efficace e veloce 
+(senza dover complicare la vita facendo subnetting al millimetro) basta dividere la rete 
+e mettere la maschera /24 (255.0) così che copre tutti gli indirizzi di una rete da 0 a 255.
+</Note>
+
+</StepCard>

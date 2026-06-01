@@ -13,10 +13,10 @@ export default function Hero() {
               Lab<span className="text-emerald-500">Z</span>
               <div className="text-5xl md:text-7xl mt-2 font-black text-transparent" 
                   style={{ WebkitTextStroke: '1px #10b981', letterSpacing: '-0.05em' }}>
-                .COM
+                v0.1
               </div>
             </h1>
-            <p className="text-zinc-400 text-lg">Root-level access to tech culture.</p>
+            <p className="text-zinc-400 text-lg font-mono">{'>'} Decoding the future of tech.</p>
             <div className="flex gap-4 pt-4 justify-center lg:justify-start">
               <button className="bg-emerald-500 text-black px-6 py-2 font-bold hover:bg-emerald-400 transition-colors">
                 Explore Now →

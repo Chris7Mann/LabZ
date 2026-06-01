@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Assicurati che Tailwind sia caricato */
+
 :root {
   --color-accent: #10b981;
 }
@@ -18,7 +18,7 @@
 .step-card-container {
   position: relative;
   margin-bottom: 2.5rem;
-  padding-left: 3rem; /* Spazio per il pallino e la linea */
+  padding-left: 5rem; /* Spazio per il pallino e la linea */
 }
 
 /* La linea verticale che unisce i passaggi */
@@ -29,13 +29,13 @@
   top: 2.5rem;
   bottom: -2.5rem;
   width: 1px;
-  background-color: #334155; /* Grigio scuro per la linea */
+  background-color: #334155; 
 }
 
 .step-card-note {
-  color: #ffffff; /* Grigio chiaro per il testo */
+  color: #ffffff; 
   
-  border: 1px solid #00bc7d; /* Grigio scuro per il bordo */
+  border: 1px solid #00bc7d; 
   border-radius: 8px;
 }
 
@@ -58,8 +58,8 @@
 
 /* Il terminale */
 .terminal-block {
-  background-color: #0e0b0b !important; /* Blu nerastro profondo */
-  border: 1px solid #10b981;
+  background-color: #26262636 !important; 
+  border: 1px solid #292929;
   border-radius: 8px;
   padding: 1.5rem;
   font-family: 'Courier New', Courier, monospace;
