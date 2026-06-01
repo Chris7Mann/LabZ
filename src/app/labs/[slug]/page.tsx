@@ -17,7 +17,7 @@ const components = {
 };
 
 
-export default async function LabPage({ params }: { params: { slug: string } }) {
+export default async function LabPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const filePath = path.join(process.cwd(), 'content/labs', `${slug}.mdx`);
   
