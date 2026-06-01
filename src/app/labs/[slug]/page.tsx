@@ -13,7 +13,7 @@ const components = {
   Note,
   Terminal,
   Text,
-  SectionTitle
+  SectionTitle,
 };
 
 
