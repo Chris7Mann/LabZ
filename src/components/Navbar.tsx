@@ -4,7 +4,7 @@ import MobileMenu from "@/components/MobileMenu"; // Assicurati che il percorso 
 export default function Navbar() {
   const links = [
     { name: "DASHBOARD", href: "/" },
-    { name: "NETWORK", href: "/network" },
+    { name: "WORKSHOPS", href: "/workshops" },
     { name: "SYSTEM", href: "/system" },
   ];
 

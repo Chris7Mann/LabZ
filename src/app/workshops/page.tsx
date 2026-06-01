@@ -1,7 +1,7 @@
 import { getSortedLabsData } from '@/lib/labs';
 import Link from 'next/link';
 
-export default function NetworkPage() {
+export default function WorkshopsPage() {
   const labs = getSortedLabsData();
 
   return (
