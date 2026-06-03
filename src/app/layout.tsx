@@ -9,7 +9,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Navbar />
           <main className="flex-grow">{children}</main>
           <footer className="mt-12 border-t border-zinc-800 pt-6 text-xs text-zinc-600 font-mono">
-            SECURE_CONNECTION_ESTABLISHED // © 2026 LAB_CORE
+            SECURE_CONNECTION_ESTABLISHED // © 2026 LABZ_CORE
           </footer>
         </div>
       </body>

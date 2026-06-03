@@ -2,13 +2,16 @@ import type { Config } from "tailwindcss";
 
 const config: Config = {
   content: [
-    "./src/**/*.{js,ts,jsx,tsx,mdx}", // Assicurati che includa la tua cartella src
+    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./content/**/*.{js,ts,jsx,tsx,mdx}", // <--- Fondamentale aggiungere questa riga!
   ],
   theme: {
     extend: {},
   },
   plugins: [
-    require('@tailwindcss/typography'), // Questo attiva le classi "prose"
+    require("@tailwindcss/typography"),
   ],
 };
 export default config;

@@ -22,7 +22,7 @@ const components = {
 export default async function LabPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const filePath = path.join(process.cwd(), 'content/labs', `${slug}.mdx`);
-  
+
   // 1. Caricamento dati lab corrente
   const fileContents = fs.readFileSync(filePath, 'utf8');
   const { data, content } = matter(fileContents);
@@ -32,7 +32,7 @@ export default async function LabPage({ params }: { params: Promise<{ slug: stri
   const currentIndex = allLabs.findIndex(l => l.slug === slug);
   const prev = allLabs[currentIndex - 1] || null;
   const next = allLabs[currentIndex + 1] || null;
-  
+
   // Filtra lab simili (stessi tag, escluso quello attuale)
   const similar = allLabs
     .filter(l => l.tags?.some((t: string) => data.tags?.includes(t)) && l.slug !== slug)
@@ -40,14 +40,21 @@ export default async function LabPage({ params }: { params: Promise<{ slug: stri
 
   return (
     <article className="max-w-3xl mx-auto px-8 py-20 text-zinc-300">
+      {data.coverImage && (
+        <img
+          src={data.coverImage}
+          alt={data.title}
+          className="w-full h-64 object-cover rounded-xl mb-10 border border-zinc-800" />
+      )}
+
       {/* Titolo e Data */}
       <h1 className="text-4xl font-bold text-white mb-2">{data.title}</h1>
-      <p className="text-zinc-500 font-mono mb-8">{data.date}</p>
-      
+      <p className="text-zinc-500 font-mono mb-8">{data.date} • {data.author} • {data.tech} • {data.difficulty}</p>
+
       <div className="prose prose-invert prose-emerald max-w-none">
-        <MDXRemote 
-            source={content} 
-            components={components} />
+        <MDXRemote
+          source={content}
+          components={components} />
       </div>
 
       {/* Sezioni aggiuntive */}

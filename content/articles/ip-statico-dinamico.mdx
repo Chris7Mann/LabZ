@@ -1,0 +1,110 @@
+---
+title: "IP Statico e Dinamico"
+date: "02/06/2026"
+author: "ChrisMann"
+coverImage: "/images/ip.png"
+tags: ["networking", "IP"]
+featured: true
+---
+
+
+
+<article className="article-content">
+
+## IP Statico vs Dinamico: Guida Completa alla Gestione degli Indirizzi
+
+Nel mondo del networking, l’indirizzo IP è la "carta d'identità" di ogni dispositivo connesso. Una delle domande più frequenti che riceviamo è: *"Dovrei impostare un IP statico o lasciare che sia il sistema a gestirlo automaticamente?"*.
+
+Come professionisti, sappiamo che non esiste una risposta univoca, ma una scelta tecnica basata sulle necessità di rete.
+
+
+
+### Che cos'è un Indirizzo IP?
+
+Ogni dispositivo in rete ha bisogno di un identificativo unico per comunicare. Che sia statico o dinamico, l'obiettivo è lo stesso: permettere al traffico dati di raggiungere la destinazione corretta senza ambiguità.
+
+
+
+### IP Dinamico: La comodità dell'automazione (DHCP)
+
+La stragrande maggioranza dei dispositivi (PC, smartphone, smart TV) utilizza un IP dinamico. L'indirizzo viene assegnato automaticamente dal router tramite il protocollo **DHCP** (*Dynamic Host Configuration Protocol*).
+
+* **Il processo:** Il dispositivo chiede un IP al server DHCP, che lo "affitta" (*lease*) per un tempo determinato. Alla scadenza, il dispositivo rinnova la richiesta.
+* **Vantaggi:**
+    * **Zero configurazione:** È una soluzione *plug-and-play*.
+    * **Gestione efficiente:** Il server ricicla gli indirizzi, evitando sprechi se non tutti i dispositivi sono connessi contemporaneamente.
+
+
+
+### IP Statico: Il controllo assoluto
+
+Un IP statico è assegnato manualmente. È permanente: non cambia a meno che non sia l'amministratore di rete a modificarlo.
+
+**Quando è indispensabile:**
+* **Server interni:** NAS, server di stampa o web server devono essere sempre raggiungibili allo stesso indirizzo.
+* **Port Forwarding:** Per inoltrare porte dal router a un dispositivo specifico, quest'ultimo deve avere un IP fisso, altrimenti la regola del firewall fallirà al primo cambio di indirizzo.
+* **VPN e Accesso Remoto:** Per garantire connessioni stabili verso reti aziendali o sistemi di controllo.
+
+
+### Confronto Strategico
+<div className="table-container">
+    <table className="my-custom-table">
+    <thead>
+        <tr>
+        <th>Caratteristica</th>
+        <th>IP Dinamico (DHCP)</th>
+        <th>IP Statico (Manuale)</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+        <td>Configurazione</td>
+        <td>Automatica</td>
+        <td>Manuale</td>
+        </tr>
+        <tr>
+        <td>Facilità d'uso</td>
+        <td>Molto Alta</td>
+        <td>Media</td>
+        </tr>
+        <tr>
+        <td>Gestione</td>
+        <td>Semplice</td>
+        <td>Richiede pianificazione</td>
+        </tr>
+        <tr>
+        <td>Affidabilità</td>
+        <td>Alta (uso generale)</td>
+        <td>Necessaria (server)</td>
+        </tr>
+        <tr>
+        <td>Rischio Conflitti</td>
+        <td>Basso (gestito dal server)</td>
+        <td>Alto (se mal configurato)</td>
+        </tr>
+    </tbody>
+    </table>
+</div>
+
+
+
+
+### Il "Terzo Polo": DHCP Reservation
+
+Per chi cerca la stabilità dell'IP statico ma la comodità del DHCP, esiste la tecnica della **DHCP Reservation** (o *Static Lease*).
+
+Configuriamo il router affinché assegni sempre lo stesso indirizzo IP allo stesso dispositivo basandosi sul suo **indirizzo MAC** (l'identificativo hardware).
+* **Il vantaggio:** Hai la certezza che il tuo server abbia sempre lo stesso IP, ma non devi configurare manualmente ogni singolo PC: il router gestisce tutto centralmente.
+
+
+
+### Conclusioni
+
+Non aver paura di assegnare IP statici, ma fallo con metodo. La regola d'oro per una rete ben strutturata è:
+
+1. **Usa il DHCP** per i client finali (smartphone, laptop, tablet).
+2. **Usa la DHCP Reservation o IP Statici** per le infrastrutture (stampanti, server, access point, telecamere IP).
+
+Pianificare bene l'assegnazione degli indirizzi oggi ti risparmierà ore di *troubleshooting* domani, specialmente quando la tua rete inizierà a crescere.
+
+</article>

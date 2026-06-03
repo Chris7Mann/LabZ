@@ -1,0 +1,81 @@
+---
+title: "NAT"
+date: "02/06/2026"
+author: "ChrisMann"
+coverImage: "/images/nat.png"
+featured: true
+tags: ["networking", "NAT"]
+---
+
+<article className="article-content">
+
+## NAT: Il "Traduttore" che salva Internet (e perché ne abbiamo ancora bisogno)
+
+Se oggi navighiamo su Internet con miliardi di dispositivi connessi simultaneamente, dobbiamo ringraziare un "trucco" architetturale nato negli anni '90: il **NAT (Network Address Translation)**.
+
+Per molti, il NAT è semplicemente quella funzione nel router di casa che permette a più dispositivi di accedere al web. Per un professionista di rete, il NAT è uno strumento di gestione dello spazio di indirizzamento, una misura di sicurezza e, talvolta, una fonte di mal di testa per il troubleshooting.
+
+In questo articolo, esploriamo cosa fa esattamente il NAT, come funziona e perché rimane un pilastro delle moderne infrastrutture.
+
+
+
+### Il problema: La carenza di IPv4
+
+Tutto nasce da un limite fisico: l'indirizzamento IPv4 utilizza indirizzi a 32 bit, offrendo circa 4,3 miliardi di combinazioni. Sembrano tanti, ma con la proliferazione di smartphone, IoT e server, questo numero è stato esaurito da tempo.
+
+Il NAT è stato introdotto per permettere a una rete locale (LAN) di utilizzare un singolo indirizzo IP pubblico per connettersi a Internet, nascondendo dietro di esso un numero virtualmente illimitato di indirizzi IP privati (come le classi `192.168.x.x` o `10.x.x.x`).
+
+
+
+
+
+### Come funziona: La "Tabella NAT"
+
+Il NAT agisce principalmente a livello di gateway (solitamente un router o un firewall). Il suo compito è mantenere una **NAT Translation Table** (o tabella di stato).
+
+Ecco cosa accade quando un pacchetto parte dal tuo PC verso un server web:
+
+1. **Origine:** Il pacchetto parte dal tuo PC con IP privato `192.168.1.5` e una porta sorgente casuale (es. `5000`).
+2. **Traduzione:** Il router riceve il pacchetto, sostituisce l'IP privato con il suo IP Pubblico e assegna una nuova porta (es. `1024`).
+3. **Memoria:** Il router registra nella tabella: *"Il dispositivo 192.168.1.5:5000 ora sta usando l'IP pubblico sulla porta 1024"*.
+4. **Ritorno:** Quando il server web risponde alla porta `1024` del router, quest'ultimo consulta la tabella, vede la corrispondenza e instrada il traffico nuovamente verso il PC originale.
+
+
+
+### Le Varianti del NAT
+
+Non esiste un solo tipo di NAT. A seconda dello scenario, utilizziamo diverse implementazioni:
+
+* **Static NAT (SNAT):** Mappa un indirizzo IP privato a un indirizzo IP pubblico specifico in modo permanente (1:1). Si usa solitamente per server interni (Web, Email) che devono essere raggiungibili dall'esterno.
+* **Dynamic NAT:** Il router assegna dinamicamente un IP pubblico da un "pool" predefinito a un dispositivo interno.
+* **PAT (Port Address Translation / NAT Overload):** È la forma più comune, quella che usiamo a casa. Molti dispositivi interni vengono mappati su un singolo IP pubblico, distinguendoli tramite porte TCP/UDP diverse.
+
+
+
+### NAT e Sicurezza: Un "Firewall Naturale"
+
+Spesso si confonde il NAT con un firewall, ma è importante distinguere: il NAT non nasce per filtrare traffico, tuttavia funge da barriera.
+
+Poiché il router non inoltra traffico proveniente dall'esterno verso l'interno se non è stato preventivamente richiesto da un dispositivo interno (o configurato tramite **Port Forwarding**), il NAT rende i dispositivi della LAN invisibili dall'esterno. È una forma rudimentale ma efficace di difesa contro le scansioni port e i tentativi di connessione malevoli.
+
+
+
+### Le criticità: Quando il NAT diventa un ostacolo
+
+Non è tutto oro quel che luccica. Il NAT rompe il modello *end-to-end* di Internet. Applicazioni che richiedono connessioni in tempo reale o bidirezionali (come VoIP, videochiamate o il gaming online) spesso soffrono a causa del NAT.
+
+In questi casi, dobbiamo ricorrere a tecniche come:
+
+* **UPnP:** Per aprire porte automaticamente.
+* **STUN/TURN:** Protocolli usati per aiutare il traffico a "bucare" il NAT in applicazioni multimediali.
+
+
+
+### Conclusione
+
+Il NAT è stato un "cerotto" temporaneo che è diventato una necessità permanente. Mentre IPv6 promette un mondo dove ogni dispositivo ha un proprio indirizzo pubblico (rendendo il NAT teoricamente non necessario), il NAT rimarrà centrale per anni, sia per la sicurezza che per la gestione delle transizioni di rete.
+
+Comprendere come manipolare le tabelle NAT e risolvere i conflitti di porta è, ad oggi, una delle competenze distintive di un vero professionista del networking.
+
+</article>
+

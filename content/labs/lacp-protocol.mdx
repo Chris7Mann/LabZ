@@ -1,10 +1,72 @@
 ---
 title: "LACP EtherChannel Implementation"
-date: "2026-05-30"
+coverImage: /images/lacp.png
+date: "30-05-2026"
+author: "ChrisMann"
 tech: "CISCO"
+difficulty: "ADVANCED"
 excerpt: "Configurazione di un link aggregato LACP (802.3ad) tra due switch Cisco Catalyst."
 tags: ["NETWORKING", "CISCO", "LACP"]
 ---
 
 # LACP EtherChannel Implementation
 Configurazione del protocollo standard IEEE 802.3ad
+Per configurare un EtherChannel LACP su Cisco, 
+devi prima selezionare le interfacce fisiche e poi associarle a un'interfaccia logica denominata Port-channel.
+
+<Note>
+
+Nelle architetture di rete gerarchiche (Core, Distribution, Access), il traffico di centinaia di utenti deve passare attraverso un unico link per raggiungere il cuore della rete.
+
+**Problema:** Se usi un solo cavo e questo si rompe, l'intero settore della rete isolato. Se usi due cavi senza LACP, lo Spanning Tree (STP) ne bloccherà uno per evitare loop.
+
+**Soluzione LACP:** Unisce i link. Se hai 4 link da 1 Gbps, ottieni un "tubo" logico da 4 Gbps e protezione totale: se 3 cavi si rompono, la rete continua a funzionare (più lentamente) sull'unico superstite.
+
+</Note>
+
+<StepCard label="A" title="Selezione delle interfacce fisiche">
+
+Supponiamo di voler aggregare le porte GigabitEthernet 0/1 e 0/2.
+
+<Terminal code=" 
+Switch# configure terminal
+Switch(config)# interface range GigabitEthernet 0/1 - 2
+Switch(config-if-range)# channel-protocol lacp
+Switch(config-if-range)# channel-group 1 mode active
+Switch(config-if-range)# exit "/>
+
+</StepCard>
+
+<StepCard label="B" title="Configurazione dell'interfaccia logica (Port-channel)">
+Una volta creato il gruppo, i parametri di rete (VLAN, Trunk, etc.) vanno configurati sull'interfaccia logica Port-channel 1, 
+non più sulle singole porte fisiche.
+
+<Terminal code=" 
+Switch(config)# interface port-channel 1
+Switch(config-if)# switchport mode trunk
+Switch(config-if)# switchport trunk allowed vlan 10,20,30
+Switch(config-if)# exit "/>
+
+</StepCard>
+
+<StepCard label="C" title="Verifica dello stato">
+
+Per assicurarti che il bundle sia attivo 
+(indicato solitamente dalla lettera P per "bundled in port-channel" e U per "in use"), usa il comando:
+
+<Terminal code=" 
+Switch# show etherchannel summary "/>
+
+</StepCard>
+
+<StepCard label="D" title="Regole d'oro per la configurazione">
+
+<Note>
+
+**Velocità e Duplex:** Devono essere identici su tutte le porte fisiche del gruppo.<br></br>
+**VLAN:** Tutte le porte devono appartenere alla stessa VLAN o essere tutte configurate come Trunk con gli stessi parametri (Native VLAN e VLAN permesse).<br></br>
+**Spanning Tree:** Il protocollo STP vedrà il Port-channel come un'unica interfaccia, evitando che una delle porte fisiche venga messa in stato "Blocking".<br></br>
+
+</Note>
+
+</StepCard>

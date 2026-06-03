@@ -1,0 +1,96 @@
+---
+title: "La Cassetta degli Attrezzi del Networker: 20 Comandi Linux Indispensabili"
+date: "03/06/2026"
+author: "ChrisMann"
+coverImage: "/images/cmd-linux.png"
+tags: ["linux", "cli", "networking"]
+---
+
+
+
+Se lavori nel networking, Linux non è solo un sistema operativo: è il tuo ambiente di lavoro principale. Che tu stia configurando un server, gestendo un firewall o analizzando il traffico su un router industriale, la linea di comando (CLI) è dove avviene la vera magia.
+
+Dimentica l'interfaccia grafica. Per essere un professionista, devi saper maneggiare la shell. Ecco i 20 comandi fondamentali, divisi per area di competenza, che ogni network engineer dovrebbe avere nel proprio arsenale.
+
+## I. Esplorazione della Rete (Networking di base)
+Questi comandi sono il tuo primo passo per capire "chi sta parlando con chi".
+
+* **ip addr**: Il successore del vecchio `ifconfig`. Mostra tutti gli indirizzi IP associati alle tue interfacce di rete.
+<Terminal code="ip addr show" />
+
+* **ip route**: Fondamentale per vedere la tabella di routing del sistema e capire da dove esce il traffico.
+<Terminal code="ip route show" />
+
+* **ping**: Il re del troubleshooting. Verifica la connettività end-to-end tramite messaggi ICMP.
+<Terminal code="ping 8.8.8.8" />
+
+* **traceroute (o mtr)**: Ti mostra ogni "salto" (hop) che il pacchetto compie per raggiungere la destinazione.
+<Terminal code="traceroute google.com" />
+
+* **ss**: Sostituisce il vetusto `netstat`. Strumento definitivo per vedere quali socket sono aperti e quali connessioni sono attive.
+<Terminal code="ss -tunlp" />
+
+## II. Diagnostica Avanzata e Analisi del Traffico
+Quando il ping non basta, devi "vedere" cosa succede dentro i pacchetti.
+
+* **dig**: Il comando definitivo per interrogare i server DNS.
+<Terminal code="dig google.com +short" />
+
+* **tcpdump**: Il coltellino svizzero dell'analisi dei pacchetti. Cattura il traffico grezzo direttamente dalla shell.
+<Terminal code="tcpdump -i eth0 port 80" />
+
+* **nmap**: Lo standard per lo scanning di rete.
+<Terminal code="nmap -sV 192.168.1.1" />
+
+* **curl**: Vitale per testare API e connettività HTTP/HTTPS verso endpoint specifici.
+<Terminal code="curl -Iv https://google.com" />
+
+* **ncat (o nc)**: Permette di leggere e scrivere dati su connessioni di rete. Utile per testare porte TCP/UDP manualmente.
+<Terminal code="nc -zv 192.168.1.50 22" />
+
+## III. Gestione del Sistema e File System
+Una rete non funziona se il server è bloccato o il filesystem è pieno.
+
+* **top (o htop)**: Monitora i processi in tempo reale.
+<Terminal code="htop" />
+
+* **df -h**: Controlla lo spazio su disco. Fondamentale per log che potrebbero saturare la memoria.
+<Terminal code="df -h" />
+
+* **grep**: Il comando di ricerca più potente. Perfetto per trovare stringhe specifiche nei log.
+<Terminal code="grep 'error' /var/log/syslog" />
+
+* **tail -f**: Segui i log in tempo reale. Indispensabile mentre stai testando una configurazione.
+<Terminal code="tail -f /var/log/syslog" />
+
+* **chmod / chown**: Gestione dei permessi. Fondamentali per la sicurezza dei file di configurazione.
+<Terminal code="chmod 600 config.conf" />
+
+## IV. Amministrazione e Sicurezza
+
+* **ssh**: Il protocollo sicuro per gestire dispositivi da remoto.
+<Terminal code="ssh user@192.168.1.1" />
+
+* **scp / rsync**: Spostare file in modo sicuro. `rsync` è preferibile per sincronizzazioni massive.
+<Terminal code="rsync -avz ./backup/ remote:/data/backup/" />
+
+* **ufw / iptables**: I pilastri del firewalling su Linux.
+<Terminal code="sudo ufw status" />
+
+* **systemctl**: Gestisce i servizi. Fondamentale per far ripartire servizi dopo una modifica.
+<Terminal code="sudo systemctl restart nginx" />
+
+* **find**: Trova file basandosi su nome, data o dimensione.
+<Terminal code="find /etc -name '*.conf'" />
+
+---
+
+## Pro Tip: L'importanza del "Man"
+Non cercare di memorizzare tutto. Ogni comando su Linux ha un manuale integrato. Se sei in dubbio, usa:
+
+<Terminal code="man ip" />
+
+Un vero professionista non è colui che sa tutto a memoria, ma colui che sa dove cercare le informazioni per risolvere il problema nel minor tempo possibile.
+
+### Un ultimo consiglio
+Non limitarti a leggere questi comandi. Apri una macchina virtuale, installa una distribuzione leggera (come Debian o Ubuntu Server) e inizia a giocarci. La pratica sulla shell è ciò che separa i semplici teorici dai veri esperti di networking.

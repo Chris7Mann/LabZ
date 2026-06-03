@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { getSortedLabsData } from '@/lib/labs';
 
 export default function RecentLabs() {
-  // Recuperiamo i lab dai file MDX
   const labs = getSortedLabsData();
 
   return (
@@ -16,24 +15,34 @@ export default function RecentLabs() {
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Limitiamo a 6 elementi con slice */}
             {labs.slice(0, 6).map((lab: any) => (
-              <Link 
-                href={`/labs/${lab.slug}`} 
+              <Link
+                href={`/labs/${lab.slug}`}
                 key={lab.slug}
-                className="group border border-zinc-800 bg-zinc-900/30 p-6 rounded-xl hover:border-emerald-500/50 transition-all flex flex-col gap-4"
+                className="group border border-zinc-800 bg-zinc-900/30 p-6 rounded-xl hover:border-emerald-500/50 transition-all flex flex-col gap-4 overflow-hidden"
               >
+                {lab.coverImage && (
+                  <div className="-mt-6 -mx-6 mb-2">
+                    <img
+                      src={lab.coverImage}
+                      alt={lab.title}
+                      className="w-full h-40 object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  </div>
+                )}
+
                 <div className="flex justify-between items-start">
                   <span className="text-[12px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded">
                     {lab.tech}
                   </span>
-                  <span className="text-[12px] text-zinc-500 font-mono">{lab.date}</span>
+                  <span className="text-[12px] text-zinc-500 font-mono">
+                    {lab.date} • {lab.author}</span>
                 </div>
-                
+
                 <h3 className="text-white font-bold group-hover:text-emerald-400 transition-colors">
                   {lab.title}
                 </h3>
-                
+
                 <p className="text-sm text-zinc-400 leading-relaxed flex-grow">
                   {lab.excerpt}
                 </p>
@@ -49,11 +58,10 @@ export default function RecentLabs() {
             ))}
           </div>
 
-          {/* Link opzionale per vedere il resto dei laboratori */}
           {labs.length > 6 && (
             <div className="mt-10 text-center">
-              <Link 
-                href="/workshops" 
+              <Link
+                href="/workshops"
                 className="text-emerald-500 hover:text-emerald-400 font-mono text-sm underline underline-offset-4"
               >
                 &gt; Visualizza tutti i laboratori ({labs.length})

@@ -1,10 +1,75 @@
 ---
 title: "OSPF Routing Core"
-date: "2026-05-30"
+coverImage: /images/ospf.png
+date: "01-06-2026"
+author: "ChrisMann"
 tech: "CISCO"
+difficulty: "MEDIUM"
 excerpt: "Implementazione di OSPF su una topologia a tre router con autenticazione MD5."
 tags: ["ROUTING", "CISCO"]
 ---
 
-# OSPF Routing Core
-Configurazione dinamica dei percorsi su area 0.
+# Implementazione di OSPF su una topologia a tre router.
+OSPF (Open Shortest Path First) è un protocollo di routing dinamico a stato di collegamento (Link-State) 
+utilizzato nelle reti IP per determinare il percorso migliore verso una destinazione. 
+Trova ampio impiego nelle reti aziendali di medie e grandi dimensioni.
+<Text />
+
+<StepCard label="A" title="Router di Sinistra (R1)">
+Dobbiamo dire a questo router di annunciare la sua rete locale (i PC) e la rete di collegamento con il centro.
+
+<Terminal code="
+Router(config)# router ospf 1
+Router(config-router)# network 192.168.1.0 0.0.0.255 area 0
+Router(config-router)# network 10.0.0.0 0.0.0.255 area 0 "/>
+
+</StepCard>
+
+<StepCard label="B" title="Router Centrale">
+Questo router deve annunciare entrambe le reti "punto-punto" che lo collegano agli altri due router.
+
+<Terminal code="
+Router(config)# router ospf 1
+Router(config-router)# network 10.0.0.0 0.0.0.255 area 0
+Router(config-router)# network 20.0.0.0 0.0.0.255 area 0 "/>
+
+</StepCard>
+
+<StepCard label="C" title="Router di Destra (R3)">
+Annuncia la sua rete locale e il collegamento verso il centro.
+
+<Terminal code="
+Router(config)# router ospf 1
+Router(config-router)# network 192.168.2.0 0.0.0.255 area 0
+Router(config-router)# network 20.0.0.0 0.0.0.255 area 0 "/>
+
+</StepCard>
+
+<StepCard label="D" title="Spiegazione dei parametri">
+<Note>
+**router ospf 1:** Il numero "1" è l'ID del processo. Deve essere lo stesso su tutti i router per semplicità, ma tecnicamente potrebbe anche variare.
+**network [indirizzo] [wildcard_mask]:** OSPF non usa la maschera di sottorete classica, ma la Wildcard Mask (l'inverso della subnet mask). Per una /24 (255.255.255.0), la wildcard è 0.0.0.255.
+**area 0:** OSPF organizza i router in aree. L'area 0 è la "Backbone" (colonna vertebrale) ed è obbligatoria.
+</Note>
+
+</StepCard>
+
+<StepCard label="E" title="Come capire se funziona?">
+Dopo aver inserito i comandi, aspetta qualche secondo. Dovresti vedere dei messaggi in console che dicono:
+
+<Terminal code="
+%OSPF-5-ADJCHG: Process 1, Nbr ... on GigabitEthernet0/x from LOADING to FULL, Loading Done "/>
+Questo significa che i router sono diventati "vicini" (neighbors) e si sono scambiati le tabelle.
+</StepCard>
+
+<StepCard label="F" title="Comandi utili per il debug">
+
+<Terminal code="
+show ip ospf neighbor
+# Ti mostra se i router si vedono tra loro."/>
+
+<Terminal code="
+show ip route
+# Vedrai le rotte imparate tramite OSPF contrassegnate con una O."/>
+
+</StepCard>
