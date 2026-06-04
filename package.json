@@ -3,16 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3000 -H 0.0.0.0 --webpack",
-    "build": "next build --webpack",
+    "dev": "next dev -p 3000 -H 0.0.0.0",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
+    "@giscus/react": "^3.1.0",
     "framer-motion": "^12.40.0",
-    "geist": "^1.7.1",
+    "geist": "^1.0.0",
     "gray-matter": "^4.0.3",
-    "next": "16.2.6",
+    "next": "^15.0.0",
     "next-mdx-remote": "^6.0.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",

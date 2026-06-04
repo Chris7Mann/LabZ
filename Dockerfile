@@ -8,7 +8,7 @@ WORKDIR /app
 # Rimuovi le istruzioni USER e chown eccessive che causano conflitti
 COPY package*.json ./
 
-RUN npm install
+RUN npm install --legacy-peer-deps
 
 # Copiamo il resto (Next.js scriverà in /app/.next come root, senza blocchi)
 COPY . .

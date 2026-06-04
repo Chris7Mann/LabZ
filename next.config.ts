@@ -1,13 +1,9 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  allowedDevOrigins: ['192.168.2.204'],
-  // Disabilita le ottimizzazioni HMR (Hot Module Replacement) aggressive
-   experimental: {
-    // Enable filesystem caching for `next dev`
-    turbopackFileSystemCacheForDev: true,
-    // Enable filesystem caching for `next build`
-    turbopackFileSystemCacheForBuild: true,
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // Disabilita la cache aggressiva in dev per vedere i cambiamenti CSS
+  onDemandEntries: {
+    maxInactiveAge: 25 * 1000,
+    pagesBufferLength: 2,
   },
 };
 
