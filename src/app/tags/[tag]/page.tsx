@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { getSortedArticlesData } from '@/lib/articles';
+import Breadcrumb from "@/components/Breadcrumb";
 
 // Aggiunto "async" e aggiornato il tipo di params a Promise
 export default async function TagPage({ params }: { params: Promise<{ tag: string }> }) {
@@ -22,6 +23,11 @@ export default async function TagPage({ params }: { params: Promise<{ tag: strin
     return (
         <main className="min-h-screen bg-black py-24">
             <section className="max-w-5xl mx-auto px-8">
+                <Breadcrumb items={[
+                    { label: "HOME", href: "/" },
+                    { label: "WORKSHOPS", href: "/workshops" }, // Oppure dove preferisci
+                    { label: tag.toUpperCase(), href: "#" }
+                ]} />
 
                 {/* Intestazione della pagina */}
                 <div className="mb-16 border-b border-zinc-800 pb-8">

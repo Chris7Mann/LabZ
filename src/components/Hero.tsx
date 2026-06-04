@@ -1,4 +1,7 @@
+"use client";
 import NetworkBackground from "@/components/NetworkBackground";
+import Typewriter from 'typewriter-effect';
+import Button from "@/components/Button";
 
 export default function Hero() {
   return (
@@ -16,11 +19,25 @@ export default function Hero() {
                 v0.1
               </div>
             </h1>
-            <p className="text-zinc-400 text-lg font-mono">{'>'} Decoding the future of tech.</p>
-            <div className="flex gap-4 pt-4 justify-center lg:justify-start">
-              <button className="bg-emerald-500 text-black px-6 py-2 font-bold hover:bg-emerald-400 transition-colors">
-                Explore Now →
-              </button>
+              <div className="text-zinc-400 text-lg font-mono">
+                <Typewriter
+                  options={{
+                    strings: [
+                      '> Decoding the future of tech.', 
+                      '> Architecting secure networks.', 
+                      '> Automating infrastructure.', 
+                      '> Building scalable systems.'
+                    ],
+                    autoStart: true,
+                    loop: true,
+                    delay: 50,
+                    deleteSpeed: 30,
+                  }}
+                />
+              </div>
+            <div className="flex gap-4 justify-center lg:justify-start mt-6">
+              <Button href="/workshops">Explore Now →</Button>
+              <Button href="/system" variant="secondary">About System</Button>
             </div>
           </div>
 
