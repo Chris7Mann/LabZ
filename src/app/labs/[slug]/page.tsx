@@ -10,6 +10,7 @@ import { Text } from "@/components/mdx/Text";
 import { SectionTitle } from "@/components/mdx/SectionTitle";
 import { LabNavigation } from '@/components/mdx/LabNavigation';
 import { SimilarPosts } from '@/components/mdx/SimilarPosts';
+import Comments from "@/components/Comments";
 
 const components = {
   StepCard,
@@ -60,6 +61,7 @@ export default async function LabPage({ params }: { params: Promise<{ slug: stri
       {/* Sezioni aggiuntive */}
       <LabNavigation prev={prev} next={next} />
       <SimilarPosts posts={similar} />
+      <Comments />
     </article>
   );
 }

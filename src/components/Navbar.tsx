@@ -14,8 +14,12 @@ export default function Navbar() {
   return (
     <header className="border-b border-zinc-800 pb-6 mb-8 flex justify-between items-end">
       <div>
-        <h1 className="text-2xl font-bold text-white tracking-tighter">LabZ</h1>
-        <p className="text-emerald-500 font-mono text-xs">READY_FOR_INPUT</p>
+        <Link href="/" className="block group">
+          <h1 className="text-2xl font-bold text-white tracking-tighter group-hover:text-emerald-400 transition-colors">
+            LabZ
+          </h1>
+          <p className="text-emerald-500 font-mono text-xs">READY_FOR_INPUT</p>
+        </Link>
       </div>
 
       {/* Menu Desktop: visibile solo da lg in su */}

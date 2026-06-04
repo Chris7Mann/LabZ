@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { MDXRemote } from 'next-mdx-remote/rsc'; 
 import {Terminal} from "@/components/mdx/Terminal";
 const matter = require('gray-matter');
+import Comments from "@/components/Comments";
 
 
 // Funzione per leggere il singolo file MDX
@@ -65,7 +66,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                 <div className="article-content">
                     <MDXRemote source={content} components={{ Terminal }}/>
                 </div>
-
+                <Comments />
             </article>
         </main>
     );
