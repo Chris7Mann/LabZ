@@ -8,13 +8,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="it">
       <head> 
         <Script 
-          src="https://embeds.iubenda.com/widgets/b1bf577d-c360-4a68-91da-dc36fa9cfcd2.js" 
-          strategy="afterInteractive" // Importante: non blocca l'idratazione
-          async
+            src="https://embeds.iubenda.com/widgets/b1bf577d-c360-4a68-91da-dc36fa9cfcd2.js" 
+            strategy="afterInteractive" 
         />
         <Script src="https://cdn.iubenda.com/iubenda.js" strategy="afterInteractive" />
         <Script src="https://cdn.iubenda.com/iubenda.js" strategy="afterInteractive" />
-        
+
         <Script id="iubenda-config" strategy="afterInteractive">
           {`
             window.addEventListener('load', function() {
