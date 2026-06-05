@@ -11,6 +11,10 @@ import { SectionTitle } from "@/components/mdx/SectionTitle";
 import { LabNavigation } from '@/components/mdx/LabNavigation';
 import { SimilarPosts } from '@/components/mdx/SimilarPosts';
 import Comments from "@/components/Comments";
+import Warning from "@/components/mdx/Warning";
+import Info from "@/components/mdx/Info";
+import Diagram from "@/components/mdx/Diagram";
+
 
 const components = {
   StepCard,
@@ -18,6 +22,9 @@ const components = {
   Terminal,
   Text,
   SectionTitle,
+  Warning,
+  Info,
+  Diagram,
 };
 
 export default async function LabPage({ params }: { params: Promise<{ slug: string }> }) {

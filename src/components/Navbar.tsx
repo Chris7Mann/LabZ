@@ -33,7 +33,7 @@ export default function Navbar() {
 
       {/* Menu Mobile: visibile solo sotto lg */}
       <div className="lg:hidden">
-        <MobileMenu />
+        <MobileMenu links={links} />
       </div>
     </header>
   );

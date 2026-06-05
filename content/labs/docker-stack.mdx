@@ -1,10 +1,968 @@
 ---
 title: "Docker Compose Stack"
-date: "2026-05-28"
+coverImage: /images/docker-compose.png
+date: "28-05-2026"
+author: "ChrisMann"
 tech: "DOCKER"
+difficulty: "INTERMEDIATE"
 excerpt: "Creazione di uno stack multi-container con persistenza dei dati su volume."
 tags: ["CONTAINER", "DEVOPS"]
 ---
 
-# Docker Compose Stack
-Deployment di un ambiente di produzione isolato con Nginx e App interna.
+
+## Guida tecnica alla creazione di uno stack multi-container con Docker Compose.
+
+In questo laboratorio realizzeremo un ambiente composto da un Reverse Proxy Nginx e una Web Application interna, separati tramite rete Docker dedicata e con persistenza dei dati tramite Docker Volume.
+
+
+
+<SectionTitle>Scenario del Laboratorio</SectionTitle>
+
+<Text>
+
+Immaginiamo di dover pubblicare una piccola applicazione web interna per un blog tecnico di informatica e networking.
+
+L'applicazione non deve essere esposta direttamente verso l'esterno.
+
+Tutte le richieste HTTP dovranno passare prima da Nginx, che fungerà da Reverse Proxy.
+
+I dati dell'applicazione dovranno essere persistenti, quindi non dovranno andare persi quando un container viene eliminato o ricreato.
+
+</Text>
+
+<Info>
+
+Questo laboratorio introduce concetti fondamentali utilizzati anche in ambienti professionali: isolamento dei servizi, reverse proxy, Docker networking, service discovery e persistenza dei dati.
+
+</Info>
+
+
+
+<SectionTitle>Architettura Finale</SectionTitle>
+
+<Text>
+
+L'architettura finale sarà composta da due container principali:
+
+* **blog-nginx**: Reverse Proxy Nginx esposto sulla porta 80 dell'host
+* **blog-app**: applicazione web interna basata su Apache HTTP Server
+
+I due container comunicheranno tramite una rete Docker privata chiamata **blog-network**.
+
+I dati persistenti saranno salvati nel volume Docker **blog-data**.
+
+</Text>
+
+<Diagram code="
+graph TD
+    Client[Client Browser] --> Host[Host Docker Porta 80]
+    Host --> Nginx[Container blog-nginx]
+    Nginx --> Network[Docker Network blog-network]
+    Network --> App[Container blog-app]
+    App --> Volume[Docker Volume blog-data]
+"/>
+
+<Warning>
+
+Il container applicativo **blog-app** non verrà esposto direttamente sull'host.
+
+L'unico servizio pubblicato verso l'esterno sarà **Nginx**.
+
+</Warning>
+
+
+
+<SectionTitle>Obiettivi del Lab</SectionTitle>
+
+<Text>
+
+Al termine del laboratorio sarai in grado di:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>Creare uno stack multi-container con Docker Compose</li>
+  <li>Configurare una rete Docker dedicata</li>
+  <li>Utilizzare un volume Docker per la persistenza dei dati</li>
+  <li>Configurare Nginx come Reverse Proxy</li>
+  <li>Comprendere la comunicazione tra container tramite DNS interno</li>
+  <li>Avviare, fermare e verificare uno stack Docker Compose</li>
+  <li>Eseguire troubleshooting di base su container, reti, porte e volumi</li>
+</ul>
+
+
+</Text>
+
+
+
+<SectionTitle>Prerequisiti</SectionTitle>
+
+<Text>
+
+Prima di iniziare dovresti conoscere almeno questi concetti:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>Differenza tra immagine e container</li>
+  <li>Concetto di porta TCP</li>
+  <li>Concetto di HTTP</li>
+  <li>Comandi base Linux</li>
+  <li>Struttura base di un file YAML</li>
+  <li>Comandi fondamentali Docker</li>
+</ul>
+
+</Text>
+
+<Note>
+
+**Nota didattica:**
+Questo laboratorio è pensato per studenti che stanno studiando Networking, Linux, Docker, Network+ o Security+.
+
+L'obiettivo non è solo "far partire dei container", ma capire perché l'architettura è costruita in questo modo.
+
+</Note>
+
+
+
+<StepCard label="A" title="Verifica installazione Docker">
+
+Prima di creare lo stack, verifichiamo che Docker sia installato correttamente.
+
+<Terminal code="docker --version"/>
+
+Verifichiamo anche Docker Compose.
+
+<Terminal code="docker compose version"/>
+
+<Info>
+
+Nelle versioni moderne di Docker, Compose viene usato con il comando **docker compose**.
+
+Nelle versioni più vecchie potresti trovare ancora **docker-compose**.
+
+</Info>
+
+</StepCard>
+
+
+
+<StepCard label="B" title="Creazione della cartella di progetto">
+
+Creiamo una directory dedicata al laboratorio.
+
+<Terminal code="mkdir docker-blog-lab
+cd docker-blog-lab"/>
+
+Creiamo poi le sottocartelle necessarie.
+
+<Terminal code="mkdir app
+mkdir nginx"/>
+
+La struttura del progetto sarà questa:
+
+<Terminal code="docker-blog-lab/
+│
+├── docker-compose.yml
+│
+├── app/
+│   └── index.html
+│
+└── nginx/
+ └── default.conf"/>
+
+<Note>
+
+**Perché separare le cartelle?**
+
+Separare configurazione Nginx, codice applicativo e file Compose rende il progetto più leggibile, più ordinato e più simile a una struttura professionale.
+
+</Note>
+
+</StepCard>
+
+
+
+<StepCard label="C" title="Creazione della pagina Web interna">
+
+Creiamo una semplice pagina HTML che rappresenterà la nostra applicazione interna.
+
+<Terminal code="nano app/index.html"/>
+
+Inseriamo questo contenuto:
+
+<Terminal code="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;it&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;UTF-8&quot;&gt;
+&lt;title&gt;Networking Blog&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;h1&gt;Docker Compose Stack&lt;/h1&gt;
+&lt;p&gt;Applicazione interna pubblicata tramite Reverse Proxy Nginx.&lt;/p&gt;
+&lt;/body&gt;
+&lt;/html&gt;"/>
+
+<Info>
+
+In questo laboratorio usiamo una pagina HTML statica per semplificare l'ambiente.
+
+In uno scenario reale, al posto di questa pagina potresti avere WordPress, Node.js, Flask, Django, Laravel o una dashboard interna.
+
+</Info>
+
+</StepCard>
+
+
+
+<StepCard label="D" title="Configurazione di Nginx come Reverse Proxy">
+
+Creiamo il file di configurazione di Nginx.
+
+<Terminal code="nano nginx/default.conf"/>
+
+Inseriamo questa configurazione:
+
+<Terminal code="server {
+
+```
+listen 80;
+
+location / {
+
+    proxy_pass http://blog-app:80;
+
+    proxy_set_header Host $host;
+
+    proxy_set_header X-Real-IP $remote_addr;
+
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+}
+```
+
+}"/>
+
+<Note>
+
+**proxy_pass http://blog-app:80**
+
+Questa direttiva dice a Nginx di inoltrare le richieste HTTP verso il servizio chiamato **blog-app** sulla porta 80.
+
+Non stiamo usando un indirizzo IP statico.
+
+Docker Compose fornisce un DNS interno che permette ai container di risolversi tramite il nome del servizio.
+
+</Note>
+
+<Warning>
+
+Non usare **localhost** dentro `proxy_pass`.
+
+Dentro un container, `localhost` indica il container stesso, non il tuo computer e non un altro container.
+
+Per comunicare con un altro servizio Docker Compose devi usare il nome del servizio, in questo caso **blog-app**.
+
+</Warning>
+
+</StepCard>
+
+
+
+<StepCard label="E" title="Creazione del file docker-compose.yml">
+
+Creiamo il file principale che descrive lo stack.
+
+<Terminal code="nano docker-compose.yml"/>
+
+Inseriamo questa configurazione:
+
+<Terminal code="services:
+
+blog-app:
+
+```
+image: httpd:2.4
+
+container_name: blog-app
+
+volumes:
+  - ./app:/usr/local/apache2/htdocs
+  - blog-data:/data
+
+networks:
+  - blog-network
+```
+
+nginx:
+
+```
+image: nginx:1.27
+
+container_name: blog-nginx
+
+ports:
+  - &quot;80:80&quot;
+
+volumes:
+  - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+
+depends_on:
+  - blog-app
+
+networks:
+  - blog-network
+```
+
+volumes:
+
+blog-data:
+
+networks:
+
+blog-network:
+driver: bridge"/>
+
+</StepCard>
+
+
+
+<StepCard label="F" title="Analisi del servizio blog-app">
+
+Analizziamo il primo servizio dello stack.
+
+<Terminal code="blog-app:
+
+image: httpd:2.4
+
+container_name: blog-app"/>
+
+Il servizio **blog-app** utilizza l'immagine ufficiale di Apache HTTP Server.
+
+Il container viene chiamato esplicitamente **blog-app**.
+
+<Terminal code="volumes:
+
+* ./app:/usr/local/apache2/htdocs
+* blog-data:/data"/>
+
+Il primo mount collega la cartella locale **app** alla directory usata da Apache per servire i file web.
+
+Il secondo mount collega il volume Docker **blog-data** alla directory **/data** dentro il container.
+
+<Info>
+
+In questo lab usiamo sia un bind mount sia un volume Docker:
+
+* **Bind mount**: collega una cartella locale del progetto al container
+* **Docker Volume**: spazio gestito direttamente da Docker per conservare dati persistenti
+
+</Info>
+
+</StepCard>
+
+
+
+<StepCard label="G" title="Analisi del servizio nginx">
+
+Analizziamo il servizio Nginx.
+
+<Terminal code="nginx:
+
+image: nginx:1.27
+
+container_name: blog-nginx
+
+ports:
+- &quot;80:80&quot; "/>
+
+La direttiva **ports** pubblica la porta 80 del container sulla porta 80 dell'host.
+
+Questo significa che potremo raggiungere Nginx dal browser usando:
+
+<Terminal code="http://localhost"/>
+
+Analizziamo il mount della configurazione.
+
+<Terminal code="volumes:
+
+* ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro"/>
+
+Il file locale **nginx/default.conf** viene montato dentro il container Nginx.
+
+L'opzione **:ro** significa **read-only**.
+
+<Warning>
+
+Montare la configurazione Nginx in sola lettura è una buona pratica.
+
+Il container può leggere il file, ma non può modificarlo.
+
+</Warning>
+
+</StepCard>
+
+
+
+<StepCard label="H" title="Analisi della rete Docker">
+
+Nel file Compose abbiamo definito una rete dedicata.
+
+<Terminal code="networks:
+
+blog-network:
+driver: bridge"/>
+
+Entrambi i servizi sono collegati alla stessa rete.
+
+<Terminal code="networks:
+
+* blog-network"/>
+
+Questo permette a **blog-nginx** e **blog-app** di comunicare tra loro.
+
+<Info>
+
+Docker Compose crea automaticamente un sistema DNS interno.
+
+Per questo motivo Nginx può raggiungere Apache usando il nome:
+
+**blog-app**
+
+</Info>
+
+</StepCard>
+
+
+
+<StepCard label="I" title="Avvio dello stack">
+
+Avviamo lo stack in background.
+
+<Terminal code="docker compose up -d"/>
+
+Verifichiamo i container in esecuzione.
+
+<Terminal code="docker ps"/>
+
+Output atteso:
+
+<Terminal code="CONTAINER ID   IMAGE        COMMAND                  PORTS                NAMES
+xxxxxxxxxxxx   nginx:1.27   nginx -g daemon off;     0.0.0.0:80-&gt;80/tcp   blog-nginx
+xxxxxxxxxxxx   httpd:2.4    httpd-foreground         80/tcp               blog-app"/>
+
+<Note>
+
+**docker compose up -d** avvia i container in modalità detached, cioè in background.
+
+Il terminale torna disponibile subito dopo l'avvio dello stack.
+
+</Note>
+
+</StepCard>
+
+
+
+<StepCard label="J" title="Test dal browser">
+
+Apriamo il browser e visitiamo:
+
+<Terminal code="http://localhost"/>
+
+Se tutto è configurato correttamente, vedremo la pagina HTML creata in precedenza.
+
+<Diagram code="
+sequenceDiagram
+    participant Browser
+    participant Nginx
+    participant App
+
+    Browser-&gt;&gt;Nginx: HTTP GET /
+    Nginx-&gt;&gt;App: proxy_pass verso blog-app:80
+    App--&gt;&gt;Nginx: Risposta HTML
+    Nginx--&gt;&gt;Browser: Pagina web
+"/>
+
+</StepCard>
+
+
+
+
+<StepCard label="K" title="Verifica della rete Docker">
+
+Visualizziamo le reti Docker presenti.
+
+<Terminal code="docker network ls"/>
+
+Cerchiamo una rete simile a questa:
+
+<Terminal code="docker-blog-lab_blog-network"/>
+
+Ispezioniamo la rete.
+
+<Terminal code="docker network inspect docker-blog-lab_blog-network"/>
+
+Nel risultato dovremmo trovare i container collegati alla rete:
+
+<Terminal code="blog-app
+blog-nginx"/>
+
+<Info>
+
+Docker Compose prefissa spesso il nome della rete con il nome della directory del progetto.
+
+Per questo motivo potresti vedere:
+
+**docker-blog-lab_blog-network**
+
+invece di solo:
+
+**blog-network**
+
+</Info>
+
+</StepCard>
+
+
+
+
+<StepCard label="L" title="Verifica DNS interno tra container">
+
+Entriamo nel container Nginx.
+
+<Terminal code="docker exec -it blog-nginx bash"/>
+
+Testiamo la risoluzione DNS verso il container applicativo.
+
+<Terminal code="getent hosts blog-app"/>
+
+Output possibile:
+
+<Terminal code="172.18.0.2      blog-app"/>
+
+<Note>
+
+**getent hosts blog-app** verifica se il nome **blog-app** viene risolto in un indirizzo IP.
+
+Questo dimostra che il DNS interno di Docker Compose sta funzionando.
+
+</Note>
+
+</StepCard>
+
+
+
+
+<StepCard label="M" title="Test della raggiungibilità applicativa interna">
+
+Sempre dal container Nginx, possiamo testare la raggiungibilità del servizio applicativo.
+
+<Terminal code="curl http://blog-app:80"/>
+
+Dovremmo ricevere il contenuto HTML della pagina.
+
+<Warning>
+
+Se il comando **curl** non è disponibile dentro il container Nginx, non è un errore della tua configurazione.
+
+Alcune immagini Docker sono minimali e non includono tutti gli strumenti di troubleshooting.
+
+</Warning>
+
+</StepCard>
+
+
+
+
+<StepCard label="N" title="Verifica del volume Docker">
+
+Visualizziamo i volumi Docker.
+
+<Terminal code="docker volume ls"/>
+
+Dovremmo trovare un volume simile a:
+
+<Terminal code="docker-blog-lab_blog-data"/>
+
+Ispezioniamo il volume.
+
+<Terminal code="docker volume inspect docker-blog-lab_blog-data"/>
+
+<Info>
+
+Anche i volumi, come le reti, possono essere prefissati con il nome della directory del progetto.
+
+Questo comportamento è normale in Docker Compose.
+
+</Info>
+
+</StepCard>
+
+
+
+
+<StepCard label="O" title="Scrittura di un dato persistente nel volume">
+
+Entriamo nel container applicativo.
+
+<Terminal code="docker exec -it blog-app bash"/>
+
+Creiamo un file dentro la directory montata sul volume Docker.
+
+<Terminal code="echo &quot;Dato persistente salvato nel volume Docker&quot; &gt; /data/persistenza.txt"/>
+
+Verifichiamo il contenuto del file.
+
+<Terminal code="cat /data/persistenza.txt"/>
+
+Output atteso:
+
+<Terminal code="Dato persistente salvato nel volume Docker"/>
+
+</StepCard>
+
+
+
+
+<StepCard label="P" title="Test reale di persistenza">
+
+Usciamo dal container.
+
+<Terminal code="exit"/>
+
+Fermiamo ed eliminiamo i container dello stack.
+
+<Terminal code="docker compose down"/>
+
+Riavviamo lo stack.
+
+<Terminal code="docker compose up -d"/>
+
+Rientriamo nel container applicativo.
+
+<Terminal code="docker exec -it blog-app bash"/>
+
+Controlliamo se il file è ancora presente.
+
+<Terminal code="cat /data/persistenza.txt"/>
+
+Se il file esiste ancora, la persistenza tramite Docker Volume sta funzionando.
+
+<Note>
+
+**docker compose down** elimina i container e la rete creata da Compose, ma non elimina automaticamente i volumi.
+
+Per eliminare anche i volumi bisogna usare un comando specifico.
+
+</Note>
+
+</StepCard>
+
+
+
+
+<StepCard label="Q" title="Eliminazione completa dello stack">
+
+Per fermare ed eliminare container e rete:
+
+<Terminal code="docker compose down"/>
+
+Per eliminare anche i volumi associati allo stack:
+
+<Terminal code="docker compose down -v"/>
+
+<Warning>
+
+Il comando **docker compose down -v** elimina anche i volumi.
+
+Se nel volume sono presenti dati importanti, verranno rimossi.
+
+Usalo solo quando sei sicuro di voler cancellare anche i dati persistenti.
+
+</Warning>
+
+</StepCard>
+
+
+
+
+<SectionTitle>Troubleshooting</SectionTitle>
+
+<Text>
+
+In un ambiente reale non basta creare lo stack.
+
+Bisogna anche sapere dove guardare quando qualcosa non funziona.
+
+Questa sezione raccoglie i controlli più importanti.
+
+</Text>
+
+
+
+
+<StepCard label="R" title="Controllare lo stato dei container">
+
+Visualizzare i container attivi:
+
+<Terminal code="docker ps"/>
+
+Visualizzare anche i container fermi:
+
+<Terminal code="docker ps -a"/>
+
+</StepCard>
+
+
+
+
+<StepCard label="S" title="Controllare i log dei servizi">
+
+Log del container Nginx:
+
+<Terminal code="docker logs blog-nginx"/>
+
+Log del container Apache:
+
+<Terminal code="docker logs blog-app"/>
+
+Seguire i log in tempo reale:
+
+<Terminal code="docker logs -f blog-nginx"/>
+
+<Info>
+
+I log sono il primo punto da controllare quando un container non parte, va in crash o restituisce errori HTTP.
+
+</Info>
+
+</StepCard>
+
+
+
+
+<StepCard label="T" title="Errore porta 80 già occupata">
+
+Se ottieni un errore simile a:
+
+<Terminal code="bind: address already in use"/>
+
+significa che la porta 80 dell'host è già occupata da un altro processo.
+
+Controlla quale processo la sta usando.
+
+<Terminal code="ss -tulpn | grep :80"/>
+
+Soluzione temporanea: modifica il mapping porta nel file Compose.
+
+<Terminal code="ports:
+
+* &quot;80:80&quot;"/>
+
+Poi accedi dal browser con:
+
+<Terminal code="http://localhost:8080"/>
+
+</StepCard>
+
+
+
+
+<StepCard label="U" title="Errore 502 Bad Gateway">
+
+Se Nginx restituisce **502 Bad Gateway**, significa che il Reverse Proxy non riesce a raggiungere l'applicazione interna.
+
+Controlla che il container applicativo sia attivo.
+
+<Terminal code="docker ps"/>
+
+Controlla i log di Nginx.
+
+<Terminal code="docker logs blog-nginx"/>
+
+Verifica che il nome nel file Nginx sia corretto.
+
+<Terminal code="proxy_pass http://blog-app:80;"/>
+
+<Warning>
+
+Un errore comune è scrivere un nome servizio diverso da quello definito nel file **docker-compose.yml**.
+
+Il nome usato in **proxy_pass** deve corrispondere al nome del servizio o al nome risolvibile nella rete Docker.
+
+</Warning>
+
+</StepCard>
+
+
+
+
+<StepCard label="V" title="Verifica configurazione Nginx">
+
+Entriamo nel container Nginx.
+
+<Terminal code="docker exec -it blog-nginx bash"/>
+
+Verifichiamo la configurazione.
+
+<Terminal code="nginx -t"/>
+
+Output atteso:
+
+<Terminal code="nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful"/>
+
+</StepCard>
+
+
+
+
+<SectionTitle>Best Practice di Produzione</SectionTitle>
+
+<Warning>
+
+In produzione evita il tag **latest**.
+
+Usare versioni specifiche come **nginx:1.27** o **httpd:2.4** rende il deployment più prevedibile.
+
+</Warning>
+
+<Warning>
+
+Non esporre direttamente il container applicativo se non è necessario.
+
+In questo lab esponiamo solo Nginx e manteniamo l'applicazione interna raggiungibile solo dalla rete Docker.
+
+</Warning>
+
+<Info>
+
+Un Reverse Proxy può essere usato anche per gestire:
+
+* Certificati HTTPS
+* Redirect HTTP verso HTTPS
+* Compressione
+* Header di sicurezza
+* Rate limiting
+* Logging centralizzato
+* Routing verso più applicazioni
+
+</Info>
+
+<Note>
+
+**Principio chiave:**
+
+Container = processo effimero
+
+Volume = dato persistente
+
+Network = comunicazione controllata
+
+Reverse Proxy = punto di ingresso
+
+</Note>
+
+
+
+
+<SectionTitle>Riepilogo dei Comandi Utili</SectionTitle>
+
+<StepCard label="W" title="Comandi Docker Compose principali">
+
+Avviare lo stack:
+
+<Terminal code="docker compose up -d"/>
+
+Fermare ed eliminare container e rete:
+
+<Terminal code="docker compose down"/>
+
+Fermare ed eliminare anche i volumi:
+
+<Terminal code="docker compose down -v"/>
+
+Visualizzare i container dello stack:
+
+<Terminal code="docker compose ps"/>
+
+Visualizzare i log:
+
+<Terminal code="docker compose logs"/>
+
+Seguire i log in tempo reale:
+
+<Terminal code="docker compose logs -f"/>
+
+</StepCard>
+
+
+
+
+<SectionTitle>Competenze Acquisite</SectionTitle>
+
+<Text>
+
+**Completando questo laboratorio hai realizzato uno stack multi-container composto da:**
+
+<ul className="list-disc pl-6 space-y-1 mb-4">
+  <li>Un Reverse Proxy Nginx esposto sulla porta 80</li>
+  <li>Un'applicazione web interna basata su Apache</li>
+  <li>Una rete Docker dedicata per la comunicazione tra container</li>
+  <li>Un volume Docker per la persistenza dei dati</li>
+  <li>Un file Docker Compose per orchestrare i servizi</li>
+  <li>Una configurazione Nginx personalizzata per il reverse proxy</li>
+</ul>
+
+
+
+**Hai inoltre verificato:**
+
+
+<ul className="list-disc pl-6 space-y-1 mt-4">
+  <li>Avvio dei container</li>
+  <li>Comunicazione interna tra servizi</li>
+  <li>DNS interno di Docker Compose</li>
+  <li>Persistenza dei dati</li>
+  <li>Log applicativi</li>
+  <li>Errori comuni di porta e proxy</li>
+</ul>
+
+</Text>
+
+<Info>
+
+Questa architettura è una base solida per comprendere deployment più avanzati con database, certificati HTTPS, container multipli, ambienti staging/production e orchestratori come Kubernetes.
+
+</Info>
+
+
+
+
+<SectionTitle>Domande di Verifica</SectionTitle>
+
+<Text>
+
+<ol className="list-decimal pl-6 space-y-2">
+  <li>Perché Nginx usa <strong>blog-app</strong> invece di un indirizzo IP?</li>
+  <li>Perché non abbiamo esposto direttamente il container <strong>blog-app</strong>?</li>
+  <li>Che differenza c'è tra bind mount e Docker Volume?</li>
+  <li>Cosa succede ai dati quando esegui <strong>docker compose down</strong>?</li>
+  <li>Quando invece vengono eliminati anche i volumi?</li>
+  <li>Perché in produzione è meglio evitare il tag <strong>latest</strong>?</li>
+  <li>Qual è il ruolo della rete Docker <strong>blog-network</strong>?</li>
+  <li>Cosa indica un errore <strong>502 Bad Gateway</strong> in questo scenario?</li>
+</ol>
+
+</Text>
+
+
+
+
+<SectionTitle>Conclusione</SectionTitle>
+
+<Text>
+
+Questo laboratorio mostra una delle architetture Docker più importanti da comprendere: un'applicazione interna protetta da un Reverse Proxy e collegata a uno spazio dati persistente.
+
+Anche se l'esempio è semplice, il modello è lo stesso usato in molti ambienti reali.
+
+La separazione tra proxy, applicazione, rete e volume permette di ottenere un'infrastruttura più ordinata, più sicura e più facile da gestire.
+
+</Text>

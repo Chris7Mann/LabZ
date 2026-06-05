@@ -1,10 +1,1004 @@
 ---
-title: "SSH Hardening Guide"
-date: "2026-05-25"
+title: "SSH Hardening"
+coverImage: /images/ssh-hardening.png
+date: "05-06-2026"
+author: "ChrisMann"
 tech: "LINUX"
-excerpt: "Metodi avanzati per mettere in sicurezza l'accesso remoto ai server Linux."
-tags: ["SECURITY", "LINUX"]
+difficulty: "MEDIUM"
+excerpt: "Metodi avanzati per mettere in sicurezza l'accesso remoto ai server Linux tramite OpenSSH, autenticazione a chiave, firewall, restrizioni utenti e protezione contro brute force."
+tags: ["LINUX", "SSH", "HARDENING", "SECURITY", "SERVER"]
 ---
 
-# SSH Hardening
-Disabilitare login root, usare chiavi ed25519 e cambiare porta di ascolto.
+Guida tecnica dedicata all'hardening di SSH su server Linux.
+
+In questo laboratorio metteremo in sicurezza l'accesso remoto ad un server Linux utilizzando autenticazione a chiave pubblica, disabilitazione del login root, restrizione degli utenti autorizzati, configurazione sicura di OpenSSH, firewall e controlli di troubleshooting.
+
+
+
+<SectionTitle>Scenario del Laboratorio</SectionTitle>
+
+<Text>
+
+SSH è uno dei servizi più importanti su un server Linux, perché permette l'amministrazione remota del sistema.
+
+Proprio per questo motivo è anche uno dei servizi più attaccati.
+
+Bot automatici, tentativi di brute force, scansioni su Internet e credenziali deboli sono minacce molto comuni contro i server esposti.
+
+In questo laboratorio configureremo un accesso SSH più sicuro, riducendo la superficie di attacco e migliorando il controllo sugli utenti autorizzati.
+
+</Text>
+
+<Info>
+
+L'obiettivo non è rendere SSH "invulnerabile", ma applicare una serie di controlli difensivi realistici e professionali.
+
+La sicurezza non dipende da una singola impostazione, ma da più livelli di protezione.
+
+</Info>
+
+
+
+<SectionTitle>Architettura del Lab</SectionTitle>
+
+<Text>
+
+Lo scenario prevede un client amministrativo che accede ad un server Linux tramite SSH.
+
+Il server accetterà solo connessioni controllate, utenti autorizzati e autenticazione tramite chiave pubblica.
+
+</Text>
+
+<Diagram code="
+graph TD
+ Admin[Admin Client] --> Firewall[Firewall Host Based]
+ Firewall --> SSHD[OpenSSH Server]
+ SSHD --> User[Utente Linux Autorizzato]
+ SSHD --> Logs[Log di Sicurezza]
+ SSHD --> Ban[Protezione Brute Force]
+"/>
+
+<Warning>
+
+Prima di modificare la configurazione SSH su un server remoto, mantieni sempre aperta una sessione SSH funzionante.
+
+Se commetti un errore e chiudi la sessione, potresti perdere l'accesso remoto al server.
+
+</Warning>
+
+
+
+<SectionTitle>Obiettivi del Lab</SectionTitle>
+
+<Text>
+
+Al termine del laboratorio sarai in grado di:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>Comprendere i principali rischi legati ad SSH</li>
+  <li>Configurare l'autenticazione tramite chiave pubblica</li>
+  <li>Disabilitare il login diretto dell'utente root</li>
+  <li>Disabilitare l'autenticazione tramite password</li>
+  <li>Limitare gli utenti autorizzati ad accedere via SSH</li>
+  <li>Validare la configurazione di OpenSSH prima del reload</li>
+  <li>Proteggere SSH con firewall host-based</li>
+  <li>Ridurre il rischio di brute force</li>
+  <li>Leggere log e diagnosticare problemi di accesso</li>
+</ul>
+
+</Text>
+
+
+
+<SectionTitle>Prerequisiti</SectionTitle>
+
+<Text>
+
+Prima di iniziare dovresti conoscere almeno questi concetti:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>Comandi base Linux</li>
+  <li>Gestione utenti e gruppi</li>
+  <li>Permessi sui file Linux</li>
+  <li>Concetto di porta TCP</li>
+  <li>Funzionamento base di SSH</li>
+  <li>Differenza tra chiave pubblica e chiave privata</li>
+  <li>Uso base di un editor come nano o vim</li>
+</ul>
+
+</Text>
+
+<Note>
+
+**Nota didattica:**
+Questo laboratorio è pensato per studenti che stanno studiando Linux, Networking, Security+ o amministrazione di sistemi.
+
+L'approccio sarà pratico, ma ogni modifica verrà spiegata dal punto di vista operativo e di sicurezza.
+
+</Note>
+
+
+
+<SectionTitle>Concetto Base: Perché fare SSH Hardening?</SectionTitle>
+
+<Text>
+
+Un server SSH lasciato con configurazione debole può essere esposto a diversi rischi:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>Tentativi automatici di brute force</li>
+  <li>Login diretto come root</li>
+  <li>Password deboli o riutilizzate</li>
+  <li>Utenti non necessari autorizzati all'accesso remoto</li>
+  <li>Port forwarding non controllato</li>
+  <li>Mancanza di log utili per investigazione</li>
+</ul>
+
+</Text>
+
+<Info>
+
+SSH hardening significa ridurre le possibilità di accesso non autorizzato applicando controlli su autenticazione, utenti, rete, logging e configurazione del servizio.
+
+</Info>
+
+
+
+<StepCard label="A" title="Verifica del servizio SSH">
+
+Prima di modificare la configurazione, verifichiamo che il servizio SSH sia attivo.
+
+<Terminal code="sudo systemctl status ssh"/>
+
+Su alcune distribuzioni il servizio può chiamarsi **sshd** invece di **ssh**.
+
+<Terminal code="sudo systemctl status sshd"/>
+
+Verifichiamo anche la porta in ascolto.
+
+<Terminal code="ss -tulpn | grep ssh"/>
+
+Output tipico:
+
+<Terminal code="tcp   LISTEN   0   128   0.0.0.0:22   0.0.0.0:*   users:((&quot;sshd&quot;,pid=1234,fd=3))"/>
+
+<Info>
+
+Sulle distribuzioni Debian e Ubuntu il servizio viene spesso chiamato **ssh**.
+
+Su distribuzioni come RHEL, Rocky Linux, AlmaLinux o Fedora viene spesso chiamato **sshd**.
+
+</Info>
+
+</StepCard>
+
+
+
+<StepCard label="B" title="Backup della configurazione SSH">
+
+Prima di modificare SSH, creiamo una copia di backup della configurazione originale.
+
+<Terminal code="sudo cp /etc/ssh/sshd_config /etc/ssh/sshd_config.backup"/>
+
+Verifichiamo che il backup esista.
+
+<Terminal code="ls -l /etc/ssh/sshd_config.backup"/>
+
+<Warning>
+
+Non saltare questo passaggio.
+
+Se una modifica impedisce l'accesso SSH, il backup ti permette di ripristinare rapidamente la configurazione precedente.
+
+</Warning>
+
+</StepCard>
+
+
+
+<StepCard label="C" title="Creazione di un utente amministrativo dedicato">
+
+È una cattiva pratica amministrare il server direttamente come root via SSH.
+
+Creiamo un utente dedicato all'amministrazione.
+
+<Terminal code="sudo adduser adminops"/>
+
+Aggiungiamo l'utente al gruppo sudo.
+
+<Terminal code="sudo usermod -aG sudo adminops"/>
+
+Verifichiamo i gruppi dell'utente.
+
+<Terminal code="groups adminops"/>
+
+Output atteso:
+
+<Terminal code="adminops : adminops sudo"/>
+
+<Note>
+
+**Perché usare un utente amministrativo dedicato?**
+
+In questo modo ogni accesso è riconducibile ad un account personale o operativo.
+
+L'utente root resta protetto e l'elevazione dei privilegi avviene solo quando necessario tramite **sudo**.
+
+</Note>
+
+</StepCard>
+
+
+
+<StepCard label="D" title="Generazione della coppia di chiavi SSH">
+
+Sul computer client, non sul server, generiamo una coppia di chiavi SSH.
+
+<Terminal code="ssh-keygen -t ed25519 -a 100 -C &quot;adminops-server&quot;"/>
+
+Quando richiesto, possiamo scegliere un percorso personalizzato oppure usare quello predefinito.
+
+<Terminal code="~/.ssh/id_ed25519
+~/.ssh/id_ed25519.pub"/>
+
+<Warning>
+
+La chiave privata **id_ed25519** non deve mai essere condivisa.
+
+La chiave pubblica **id_ed25519.pub** può invece essere copiata sul server.
+
+</Warning>
+
+<Info>
+
+ED25519 è una scelta moderna e molto usata per le chiavi SSH.
+
+L'opzione **-a 100** aumenta il numero di round KDF usati per proteggere la chiave privata con passphrase.
+
+</Info>
+
+</StepCard>
+
+
+
+<StepCard label="E" title="Copia della chiave pubblica sul server">
+
+Copiamo la chiave pubblica sul server per l'utente **adminops**.
+
+<Terminal code="ssh-copy-id adminops@IP_DEL_SERVER"/>
+
+Se usi una chiave con nome personalizzato:
+
+<Terminal code="ssh-copy-id -i ~/.ssh/id_ed25519.pub adminops@IP_DEL_SERVER"/>
+
+Testiamo l'accesso.
+
+<Terminal code="ssh adminops@IP_DEL_SERVER"/>
+
+<Note>
+
+**Cosa succede tecnicamente?**
+
+La chiave pubblica viene aggiunta al file:
+
+**/home/adminops/.ssh/authorized_keys**
+
+Da quel momento il server può verificare l'identità del client tramite autenticazione crittografica.
+
+</Note>
+
+</StepCard>
+
+
+
+<StepCard label="F" title="Verifica dei permessi della directory .ssh">
+
+Sul server controlliamo i permessi della directory SSH dell'utente.
+
+<Terminal code="sudo ls -ld /home/adminops/.ssh
+sudo ls -l /home/adminops/.ssh/authorized_keys"/>
+
+Impostiamo permessi sicuri.
+
+<Terminal code="sudo chmod 700 /home/adminops/.ssh
+sudo chmod 600 /home/adminops/.ssh/authorized_keys
+sudo chown -R adminops:adminops /home/adminops/.ssh"/>
+
+<Warning>
+
+Permessi errati sulla directory **.ssh** o sul file **authorized_keys** possono impedire l'autenticazione tramite chiave pubblica.
+
+</Warning>
+
+</StepCard>
+
+
+
+<StepCard label="G" title="Creazione di un file di hardening dedicato">
+
+Invece di modificare direttamente tutto il file principale, creiamo un file dedicato nella directory di configurazione modulare.
+
+<Terminal code="sudo nano /etc/ssh/sshd_config.d/99-hardening.conf"/>
+
+Inseriamo questa configurazione:
+
+<Terminal code="# SSH Hardening Configuration
+
+# Disabilita il login diretto come root
+
+PermitRootLogin no
+
+# Abilita autenticazione tramite chiave pubblica
+
+PubkeyAuthentication yes
+
+# Disabilita autenticazione tramite password
+
+PasswordAuthentication no
+
+# Disabilita autenticazione interattiva tastiera/PAM per password challenge
+
+KbdInteractiveAuthentication no
+
+# Non permettere password vuote
+
+PermitEmptyPasswords no
+
+# Limita gli utenti autorizzati via SSH
+
+AllowUsers adminops
+
+# Riduce il numero massimo di tentativi di autenticazione
+
+MaxAuthTries 3
+
+# Riduce il tempo disponibile per completare il login
+
+LoginGraceTime 30
+
+# Disabilita X11 forwarding
+
+X11Forwarding no
+
+# Disabilita TCP forwarding
+
+AllowTcpForwarding no
+
+# Disabilita agent forwarding
+
+AllowAgentForwarding no
+
+# Chiude sessioni inattive
+
+ClientAliveInterval 300
+ClientAliveCountMax 2
+
+# Aumenta dettaglio log per autenticazioni a chiave
+
+LogLevel VERBOSE"/>
+
+</StepCard>
+
+
+
+<StepCard label="H" title="Analisi delle direttive principali">
+
+Analizziamo le direttive più importanti del file di hardening.
+
+<Terminal code="PermitRootLogin no"/>
+
+Impedisce l'accesso diretto via SSH all'utente root.
+
+<Terminal code="PasswordAuthentication no"/>
+
+Disabilita l'autenticazione tramite password.
+
+<Terminal code="AllowUsers adminops"/>
+
+Permette l'accesso SSH solo agli utenti specificati.
+
+<Terminal code="MaxAuthTries 3"/>
+
+Riduce il numero massimo di tentativi di autenticazione per connessione.
+
+<Terminal code="LogLevel VERBOSE"/>
+
+Aumenta il dettaglio dei log relativi all'autenticazione, utile per audit e troubleshooting.
+
+<Info>
+
+La direttiva **AllowUsers** è molto restrittiva.
+
+Se aggiungi un nuovo amministratore, devi ricordarti di inserirlo in questa lista oppure non potrà accedere via SSH.
+
+</Info>
+
+</StepCard>
+
+
+
+<StepCard label="I" title="Validazione della configurazione SSH">
+
+Prima di ricaricare SSH, controlliamo che la sintassi sia corretta.
+
+<Terminal code="sudo sshd -t"/>
+
+Se il comando non restituisce output, la configurazione è valida.
+
+Possiamo anche visualizzare la configurazione effettiva caricata da sshd.
+
+<Terminal code="sudo sshd -T | grep -E &quot;permitrootlogin|passwordauthentication|pubkeyauthentication|allowusers|maxauthtries|logingracetime&quot;"/>
+
+Output atteso simile:
+
+<Terminal code="permitrootlogin no
+passwordauthentication no
+pubkeyauthentication yes
+allowusers adminops
+maxauthtries 3
+logingracetime 30"/>
+
+<Warning>
+
+Esegui sempre **sshd -t** prima di riavviare o ricaricare SSH.
+
+Una configurazione errata può bloccare l'accesso remoto al server.
+
+</Warning>
+
+</StepCard>
+
+
+
+<StepCard label="J" title="Reload sicuro del servizio SSH">
+
+Se la configurazione è valida, ricarichiamo il servizio.
+
+Su Debian e Ubuntu:
+
+<Terminal code="sudo systemctl reload ssh"/>
+
+Su RHEL, Rocky Linux, AlmaLinux o Fedora:
+
+<Terminal code="sudo systemctl reload sshd"/>
+
+Se il reload non è supportato, usa restart con maggiore attenzione.
+
+<Terminal code="sudo systemctl restart ssh"/>
+
+<Warning>
+
+Non chiudere la sessione SSH attuale.
+
+Apri un nuovo terminale e prova un nuovo accesso prima di disconnetterti dalla sessione già aperta.
+
+</Warning>
+
+</StepCard>
+
+
+
+<StepCard label="K" title="Test del nuovo accesso SSH">
+
+Dal client apriamo una nuova connessione.
+
+<Terminal code="ssh adminops@IP_DEL_SERVER"/>
+
+Se usi una chiave specifica:
+
+<Terminal code="ssh -i ~/.ssh/id_ed25519 adminops@IP_DEL_SERVER"/>
+
+Testiamo anche che root non possa accedere direttamente.
+
+<Terminal code="ssh root@IP_DEL_SERVER"/>
+
+Il login root dovrebbe essere rifiutato.
+
+<Note>
+
+**Test corretto:**
+Prima verifichi che l'utente autorizzato riesca ad accedere.
+
+Solo dopo verifichi che gli utenti non autorizzati vengano bloccati.
+
+</Note>
+
+</StepCard>
+
+
+
+<StepCard label="L" title="Protezione tramite firewall host-based">
+
+Riduciamo l'esposizione di SSH permettendo l'accesso solo da un IP amministrativo fidato.
+
+Esempio con UFW:
+
+<Terminal code="sudo ufw allow from IP_CLIENT_AMMINISTRATIVO to any port 22 proto tcp"/>
+
+Abilitiamo UFW solo dopo aver creato la regola.
+
+<Terminal code="sudo ufw enable"/>
+
+Verifichiamo lo stato.
+
+<Terminal code="sudo ufw status numbered"/>
+
+<Warning>
+
+Non abilitare il firewall prima di aver permesso il traffico SSH dal tuo indirizzo IP.
+
+Potresti bloccare te stesso fuori dal server.
+
+</Warning>
+
+</StepCard>
+
+
+
+<StepCard label="M" title="Cambio della porta SSH">
+
+Cambiare la porta SSH non è una misura di sicurezza forte, ma può ridurre il rumore dei bot automatici che scansionano la porta 22.
+
+Apriamo il file di hardening.
+
+<Terminal code="sudo nano /etc/ssh/sshd_config.d/99-hardening.conf"/>
+
+Aggiungiamo una porta personalizzata.
+
+<Terminal code="Port 2222"/>
+
+Apriamo la nuova porta nel firewall.
+
+<Terminal code="sudo ufw allow from IP_CLIENT_AMMINISTRATIVO to any port 2222 proto tcp"/>
+
+Validiamo la configurazione.
+
+<Terminal code="sudo sshd -t"/>
+
+Ricarichiamo SSH.
+
+<Terminal code="sudo systemctl reload ssh"/>
+
+Testiamo la connessione sulla nuova porta.
+
+<Terminal code="ssh -p 2222 adminops@IP_DEL_SERVER"/>
+
+<Info>
+
+Cambiare porta non sostituisce chiavi SSH, firewall, disabilitazione password e restrizioni utenti.
+
+È solo un livello aggiuntivo per ridurre scansioni automatiche e log rumorosi.
+
+</Info>
+
+</StepCard>
+
+
+
+<StepCard label="N" title="Protezione contro brute force con Fail2ban">
+
+Installiamo Fail2ban.
+
+Su Debian e Ubuntu:
+
+<Terminal code="sudo apt update
+sudo apt install fail2ban -y"/>
+
+Creiamo una configurazione locale per SSH.
+
+<Terminal code="sudo nano /etc/fail2ban/jail.local"/>
+
+Inseriamo una configurazione base.
+
+<Terminal code="[sshd]
+
+enabled = true
+port = 22
+filter = sshd
+logpath = /var/log/auth.log
+maxretry = 3
+findtime = 10m
+bantime = 1h"/>
+
+Riavviamo Fail2ban.
+
+<Terminal code="sudo systemctl restart fail2ban"/>
+
+Verifichiamo lo stato.
+
+<Terminal code="sudo fail2ban-client status sshd"/>
+
+<Warning>
+
+Se hai cambiato porta SSH, aggiorna anche il valore **port** nella configurazione di Fail2ban.
+
+Esempio:
+
+**port = 2222**
+
+</Warning>
+
+</StepCard>
+
+
+
+<StepCard label="O" title="Controllo dei log SSH">
+
+Su Debian e Ubuntu i log SSH sono spesso in:
+
+<Terminal code="/var/log/auth.log"/>
+
+Possiamo monitorarli in tempo reale.
+
+<Terminal code="sudo tail -f /var/log/auth.log"/>
+
+Su alcune distribuzioni con systemd possiamo usare journalctl.
+
+<Terminal code="sudo journalctl -u ssh -f"/>
+
+Oppure:
+
+<Terminal code="sudo journalctl -u sshd -f"/>
+
+<Info>
+
+I log SSH sono fondamentali per identificare:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>Tentativi di login falliti</li>
+  <li>Accessi riusciti</li>
+  <li>Utenti inesistenti usati dai bot</li>
+  <li>Problemi di chiavi e permessi</li>
+  <li>Blocchi applicati da Fail2ban</li>
+</ul>
+
+</Info>
+
+</StepCard>
+
+
+
+<StepCard label="P" title="Limitare il forwarding SSH">
+
+SSH può essere usato anche per creare tunnel.
+
+Questa funzionalità è potente, ma non sempre deve essere disponibile.
+
+Nel file di hardening abbiamo già inserito:
+
+<Terminal code="AllowTcpForwarding no
+AllowAgentForwarding no
+X11Forwarding no"/>
+
+Queste direttive limitano:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>TCP forwarding</li>
+  <li>Agent forwarding</li>
+  <li>Forwarding grafico X11</li>
+</ul>
+
+<Warning>
+
+Se usi SSH per tunnel legittimi, bastion host, Git forwarding o amministrazione avanzata, queste direttive potrebbero bloccare funzionalità necessarie.
+
+Prima di applicarle in produzione, verifica il caso d'uso reale.
+
+</Warning>
+
+</StepCard>
+
+
+
+<StepCard label="Q" title="Uso dei Match Block per regole avanzate">
+
+OpenSSH permette di applicare regole diverse in base ad utente, gruppo, indirizzo IP o altri criteri.
+
+Esempio: permettere un utente SFTP ma impedirgli l'accesso shell.
+
+<Terminal code="Match User sftpuser
+ ChrootDirectory /srv/sftp
+ ForceCommand internal-sftp
+ AllowTcpForwarding no
+ X11Forwarding no"/>
+
+<Info>
+
+I blocchi **Match** sono molto potenti perché permettono policy granulari.
+
+Sono utili quando sullo stesso server convivono amministratori, utenti SFTP, automazioni e account di servizio.
+
+</Info>
+
+<Warning>
+
+I blocchi **Match** devono essere progettati con attenzione.
+
+Una configurazione errata può applicare restrizioni impreviste agli utenti sbagliati.
+
+</Warning>
+
+</StepCard>
+
+
+
+<SectionTitle>Troubleshooting</SectionTitle>
+
+<Text>
+
+Quando SSH non funziona, bisogna procedere con metodo.
+
+Questa sezione raccoglie i controlli più importanti per diagnosticare errori di accesso.
+
+</Text>
+
+
+
+<StepCard label="R" title="Errore: Permission denied publickey">
+
+Se ricevi un errore simile:
+
+<Terminal code="Permission denied (publickey)."/>
+
+Controlla che la chiave pubblica sia presente sul server.
+
+<Terminal code="cat /home/adminops/.ssh/authorized_keys"/>
+
+Controlla i permessi.
+
+<Terminal code="ls -ld /home/adminops/.ssh
+ls -l /home/adminops/.ssh/authorized_keys"/>
+
+Permessi consigliati:
+
+<Terminal code="chmod 700 /home/adminops/.ssh
+chmod 600 /home/adminops/.ssh/authorized_keys"/>
+
+</StepCard>
+
+
+
+<StepCard label="S" title="Errore: Connection refused">
+
+Se ricevi:
+
+<Terminal code="Connection refused"/>
+
+Il servizio SSH potrebbe non essere in ascolto.
+
+Controlla lo stato.
+
+<Terminal code="sudo systemctl status ssh"/>
+
+Oppure:
+
+<Terminal code="sudo systemctl status sshd"/>
+
+Controlla le porte in ascolto.
+
+<Terminal code="ss -tulpn | grep ssh"/>
+
+</StepCard>
+
+
+
+<StepCard label="T" title="Errore: Connection timed out">
+
+Se la connessione va in timeout, il problema potrebbe essere di rete o firewall.
+
+Controlla UFW.
+
+<Terminal code="sudo ufw status numbered"/>
+
+Controlla se la porta è raggiungibile dal client.
+
+<Terminal code="nc -vz IP_DEL_SERVER 22"/>
+
+Se hai cambiato porta:
+
+<Terminal code="nc -vz IP_DEL_SERVER 2222"/>
+
+<Info>
+
+**Connection refused** di solito indica che l'host risponde ma il servizio non ascolta sulla porta.
+
+**Connection timed out** indica spesso un filtro di rete, firewall o routing non raggiungibile.
+
+</Info>
+
+</StepCard>
+
+
+
+<StepCard label="U" title="Verifica dettagliata dal client">
+
+Dal client puoi usare la modalità verbose.
+
+<Terminal code="ssh -v adminops@IP_DEL_SERVER"/>
+
+Per ancora più dettagli:
+
+<Terminal code="ssh -vvv adminops@IP_DEL_SERVER"/>
+
+<Note>
+
+La modalità verbose mostra quali chiavi vengono provate dal client, quale metodo di autenticazione viene usato e dove il processo fallisce.
+
+</Note>
+
+</StepCard>
+
+
+
+<StepCard label="V" title="Ripristino della configurazione precedente">
+
+Se qualcosa va storto e hai ancora accesso alla macchina, puoi ripristinare il backup.
+
+<Terminal code="sudo cp /etc/ssh/sshd_config.backup /etc/ssh/sshd_config"/>
+
+Rimuovi temporaneamente il file di hardening.
+
+<Terminal code="sudo mv /etc/ssh/sshd_config.d/99-hardening.conf /etc/ssh/sshd_config.d/99-hardening.conf.disabled"/>
+
+Valida la configurazione.
+
+<Terminal code="sudo sshd -t"/>
+
+Ricarica SSH.
+
+<Terminal code="sudo systemctl reload ssh"/>
+
+</StepCard>
+
+
+
+<SectionTitle>Best Practice di Produzione</SectionTitle>
+
+<Warning>
+
+Non disabilitare le password finché non hai verificato che l'accesso tramite chiave pubblica funzioni correttamente.
+
+</Warning>
+
+<Warning>
+
+Non affidarti solo al cambio porta.
+
+La sicurezza reale arriva da autenticazione forte, restrizioni utenti, firewall, logging e manutenzione del sistema.
+
+</Warning>
+
+<Info>
+
+Per un server esposto su Internet, una configurazione SSH ragionevole dovrebbe includere:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>Login root disabilitato</li>
+  <li>Autenticazione a chiave pubblica</li>
+  <li>Password SSH disabilitate</li>
+  <li>Utenti autorizzati esplicitamente</li>
+  <li>Firewall limitato ad IP fidati o VPN</li>
+  <li>Fail2ban o protezione equivalente contro brute force</li>
+  <li>Log monitorati regolarmente</li>
+  <li>Aggiornamenti di sicurezza applicati</li>
+</ul>
+
+</Info>
+
+<Note>
+
+**Principio chiave:**
+
+SSH non va solo "installato".
+
+SSH va progettato come punto di accesso critico al sistema.
+
+Ogni accesso remoto deve essere controllato, tracciabile e limitato al minimo necessario.
+
+</Note>
+
+
+
+<SectionTitle>Riepilogo dei Comandi Utili</SectionTitle>
+
+<StepCard label="W" title="Comandi principali">
+
+Controllare stato SSH:
+
+<Terminal code="sudo systemctl status ssh"/>
+
+Validare configurazione:
+
+<Terminal code="sudo sshd -t"/>
+
+Mostrare configurazione effettiva:
+
+<Terminal code="sudo sshd -T"/>
+
+Ricaricare SSH:
+
+<Terminal code="sudo systemctl reload ssh"/>
+
+Monitorare log:
+
+<Terminal code="sudo tail -f /var/log/auth.log"/>
+
+Test connessione SSH:
+
+<Terminal code="ssh -v adminops@IP_DEL_SERVER"/>
+
+Controllare firewall UFW:
+
+<Terminal code="sudo ufw status numbered"/>
+
+Controllare Fail2ban:
+
+<Terminal code="sudo fail2ban-client status sshd"/>
+
+</StepCard>
+
+
+
+<SectionTitle>Competenze Acquisite</SectionTitle>
+
+<Text>
+
+Completando questo laboratorio hai configurato un accesso SSH più sicuro su Linux.
+
+Hai lavorato su:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>Utente amministrativo dedicato</li>
+  <li>Autenticazione tramite chiave pubblica</li>
+  <li>Disabilitazione del login root</li>
+  <li>Disabilitazione delle password SSH</li>
+  <li>Limitazione degli utenti autorizzati</li>
+  <li>Validazione di configurazione con sshd -t</li>
+  <li>Firewall host-based</li>
+  <li>Fail2ban</li>
+  <li>Analisi dei log</li>
+  <li>Troubleshooting degli errori SSH più comuni</li>
+</ul>
+
+</Text>
+
+<Info>
+
+Queste competenze sono fondamentali per amministrazione Linux, cybersecurity, cloud server, VPS, home lab e ambienti di produzione.
+
+</Info>
+
+
+
+<SectionTitle>Domande di Verifica</SectionTitle>
+
+<Text>
+
+<ol className="list-decimal pl-6 space-y-2">
+  <li>Perché è sconsigliato permettere il login diretto come root via SSH?</li>
+  <li>Qual è il vantaggio dell'autenticazione tramite chiave pubblica rispetto alla password?</li>
+  <li>Cosa succede se imposti <strong>PasswordAuthentication no</strong> prima di aver copiato correttamente la chiave pubblica?</li>
+  <li>A cosa serve la direttiva <strong>AllowUsers</strong>?</li>
+  <li>Perché bisogna eseguire <strong>sshd -t</strong> prima di ricaricare il servizio?</li>
+  <li>Qual è la differenza tra <strong>Connection refused</strong> e <strong>Connection timed out</strong>?</li>
+  <li>Perché cambiare porta SSH non è considerato un vero controllo di sicurezza forte?</li>
+  <li>A cosa serve Fail2ban in uno scenario SSH esposto su Internet?</li>
+</ol>
+
+</Text>
+
+
+
+<SectionTitle>Conclusione</SectionTitle>
+
+<Text>
+
+SSH è uno dei servizi più critici in un server Linux.
+
+Un accesso SSH configurato male può diventare il punto di ingresso principale per un attaccante.
+
+In questo laboratorio hai applicato un modello di hardening pratico e realistico: autenticazione a chiave, utenti limitati, root login disabilitato, password disattivate, firewall, logging e protezione contro brute force.
+
+Queste configurazioni rappresentano una base solida per gestire server Linux in modo più sicuro, sia in un home lab sia in ambienti professionali.
+
+</Text>
