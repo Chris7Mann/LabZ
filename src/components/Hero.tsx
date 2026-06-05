@@ -1,12 +1,12 @@
 "use client";
-import NetworkBackground from "@/components/NetworkBackground";
+// import NetworkBackground from "@/components/NetworkBackground";
 import Typewriter from 'typewriter-effect';
 import Button from "@/components/Button";
 
 export default function Hero() {
   return (
-    <section className="relative w-screen -mx-[calc((100vw-100%)/2)] py-12 bg-zinc-950 border-b border-zinc-800 overflow-hidden">
-      <NetworkBackground />
+    <section className="max-w-5xl mx-auto py-12  overflow-hidden">
+      {/* <NetworkBackground /> */}
       <div className="max-w-5xl mx-auto px-8 relative z-10">
         <div className="flex flex-col lg:grid lg:grid-cols-2 gap-12 items-center">
           

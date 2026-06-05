@@ -43,11 +43,9 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                 {/* Immagine di copertina (stile largo come nei lab) */}
                 {data.coverImage && (
                     <div className="w-full mb-12">
-                        <img
+                        <img className="iubenda-no-cmp w-full h-auto max-h-[450px] object-cover rounded-xl border border-zinc-800"
                             src={data.coverImage}
-                            alt={data.title}
-                            className="w-full h-auto max-h-[450px] object-cover rounded-xl border border-zinc-800"
-                        />
+                            alt={data.title} />    
                     </div>
                 )}
 

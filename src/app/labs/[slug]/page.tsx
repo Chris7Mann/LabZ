@@ -49,10 +49,9 @@ export default async function LabPage({ params }: { params: Promise<{ slug: stri
   return (
     <article className="max-w-3xl mx-auto px-8 py-20 text-zinc-300">
       {data.coverImage && (
-        <img
-          src={data.coverImage}
-          alt={data.title}
-          className="w-full h-64 object-cover rounded-xl mb-10 border border-zinc-800" />
+        <img className="iubenda-no-cmp w-full h-64 object-cover rounded-xl mb-10 border border-zinc-800" 
+        src={data.coverImage}
+          alt={data.title} />
       )}
 
       {/* Titolo e Data */}

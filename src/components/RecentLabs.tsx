@@ -26,7 +26,7 @@ export default function RecentLabs() {
                     <img
                       src={lab.coverImage}
                       alt={lab.title}
-                      className="w-full h-40 object-cover transition-transform duration-500 group-hover:scale-105"
+                      className="iubenda-no-cmp w-full h-40 object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                   </div>
                 )}

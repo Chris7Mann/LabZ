@@ -5,10 +5,12 @@ import FeaturedArticles from '@/components/FeaturedArticles';
 import RecentArticles from '@/components/RecentArticles';
 import MarqueeBar from '@/components/MarqueeBar';
 import Footer from "@/components/Footer";
+import HeroBackgroundWrapper from "@/components/HeroBackgroundWrapper";
 
 export default function Home() {
   return (
-    <main className="w-full">
+    <main className="relative min-h-screen" style={{ pointerEvents: 'auto' }}>
+      <HeroBackgroundWrapper />
       <Hero />
       <RecentLabs />
       <About />

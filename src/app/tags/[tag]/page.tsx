@@ -57,7 +57,7 @@ export default async function TagPage({ params }: { params: Promise<{ tag: strin
                                         <img
                                             src={article.coverImage}
                                             alt={article.title}
-                                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                            className="iubenda-no-cmpw-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                         />
                                     </div>
                                 )}
