@@ -5,7 +5,7 @@ export default function FeaturedArticles() {
     const articles = getSortedArticlesData();
     
     // Inserisci qui lo slug esatto dell'articolo che vuoi grande (senza .mdx)
-    const HERO_SLUG = "cmd-linux"; 
+    const HERO_SLUG = "hardening-server"; // Sostituisci con lo slug del tuo articolo "grande"
 
     // 1. Estrai l'articolo grande
     const heroArticle = articles.find((article: any) => article.slug === HERO_SLUG);

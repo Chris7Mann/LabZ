@@ -1,0 +1,1045 @@
+---
+title: "Checklist di hardening per un server Linux appena installato"
+date: "06/06/2026"
+author: "ChrisMann"
+coverImage: "/images/hardening-server.png"
+tags: ["linux", "cli", "networking"]
+---
+
+<article className="article-content">
+
+Installare un server Linux è solo il primo passo. Un sistema appena installato, anche se aggiornato e apparentemente “pulito”, non deve mai essere considerato automaticamente sicuro. Prima di esporlo a Internet, usarlo in un homelab, pubblicare un sito web, ospitare container Docker o configurare servizi di rete, è necessario applicare una serie di misure di hardening.
+
+Con il termine hardening si intende l’insieme delle attività necessarie per ridurre la superficie d’attacco di un sistema. In pratica, significa configurare il server in modo più sicuro, disabilitare ciò che non serve, limitare i privilegi, controllare gli accessi, monitorare i log e preparare un piano di backup.
+
+Questa guida è pensata per studenti, junior system administrator, appassionati di cybersecurity e chiunque voglia imparare a gestire un server Linux con un approccio più professionale.
+
+L’obiettivo non è rendere il sistema “invulnerabile”, perché nessun sistema lo è. L’obiettivo è renderlo più difficile da compromettere, più semplice da controllare e più rapido da ripristinare in caso di problema.
+
+
+## Aggiornare subito il sistema
+
+La prima operazione da fare su un server appena installato è aggiornare il sistema operativo e i pacchetti installati.
+
+Un server non aggiornato può contenere vulnerabilità già note e pubblicamente documentate. Questo significa che un attaccante potrebbe sfruttare falle per cui esistono già patch disponibili.
+
+Su distribuzioni Debian/Ubuntu:
+<Terminal code="sudo apt update && sudo apt upgrade -y"/>
+Su distribuzioni Red Hat/CentOS/Fedora:
+<Terminal code="sudo dnf update -y"/>
+Su distribuzioni Arch Linux:
+<Terminal code="sudo pacman -Syu"/>
+
+
+Il comando `apt update` aggiorna l’elenco dei pacchetti disponibili dai repository configurati. Il comando `apt upgrade` installa gli aggiornamenti disponibili per i pacchetti già presenti nel sistema.
+
+Dopo l’aggiornamento, è buona pratica controllare se è necessario riavviare il server:
+
+<Terminal code="
+[ -f /var/run/reboot-required ] && cat /var/run/reboot-required" />
+
+Se il sistema richiede un riavvio, soprattutto dopo aggiornamenti del kernel o di librerie critiche, puoi eseguire:
+
+<Terminal code="sudo reboot"  />
+
+Su sistemi RHEL, Rocky Linux, AlmaLinux o Fedora, il comando equivalente è generalmente:
+
+<Terminal code="sudo dnf update -y"  />
+
+oppure, su sistemi più vecchi:
+
+<Terminal code="sudo yum update -y"  />
+
+
+### Aggiornamenti automatici di sicurezza
+
+Su un server reale, è importante stabilire una strategia per gli aggiornamenti. In ambienti di produzione, non sempre è consigliabile aggiornare tutto automaticamente senza controllo, perché alcuni aggiornamenti potrebbero influire sui servizi attivi. Tuttavia, gli aggiornamenti di sicurezza dovrebbero essere gestiti con molta attenzione.
+
+Su Ubuntu/Debian è possibile usare **unattended-upgrades:**
+
+<Terminal code="sudo apt install unattended-upgrades -y" />
+<Terminal code="sudo dpkg-reconfigure unattended-upgrades" />
+
+Per verificare la configurazione:
+
+<Terminal code="sudo nano /etc/apt/apt.conf.d/20auto-upgrades" />
+
+Una configurazione tipica può essere:
+
+```bash
+APT::Periodic::Update-Package-Lists "1";
+```
+```bash
+APT::Periodic::Unattended-Upgrade "1";
+```
+
+Questo permette al sistema di controllare e applicare automaticamente determinati aggiornamenti, in particolare quelli di sicurezza.
+
+## Creare un utente dedicato e non lavorare come root
+
+Uno degli errori più comuni è amministrare il server direttamente con l’utente `root`. L’utente root ha privilegi completi sul sistema: può modificare file critici, eliminare directory di sistema, cambiare configurazioni, installare software e gestire utenti.
+
+Usare sempre `root` aumenta il rischio di danni accidentali e rende più pericolosa una compromissione dell’account.
+
+La pratica corretta è creare un utente dedicato e assegnargli privilegi amministrativi tramite `sudo`.
+
+Esempio:
+<Terminal code="sudo adduser nomeutente" />
+
+Poi aggiungi l’utente al gruppo sudo:
+
+<Terminal code="sudo usermod -aG sudo nomeutente" />  
+
+A questo punto puoi accedere con il nuovo utente e usare sudo solo quando servono privilegi amministrativi. 
+
+**Per verificare i gruppi dell’utente:**
+
+```bash
+groups nomeutente
+```
+
+Per testare i privilegi:
+
+```bash
+su - nomeutente
+```
+```bash
+sudo whoami
+```
+Se il comando restituisce:
+```bash
+root
+```
+significa che l’utente può eseguire comandi amministrativi tramite sudo.
+
+### Perché usare sudo
+
+`sudo` permette di eseguire comandi privilegiati in modo controllato. Inoltre, le operazioni eseguite tramite sudo vengono tracciate nei log di sistema. Questo è utile sia per troubleshooting sia per auditing.
+
+Un altro vantaggio è che si evita di lasciare una shell root aperta per troppo tempo. Ogni comando amministrativo viene eseguito in modo esplicito.
+
+## Configurare SSH in modo sicuro
+
+**SSH** è uno dei servizi più importanti su un server Linux, perché consente l’accesso remoto alla macchina. Proprio per questo motivo è anche uno dei bersagli più frequenti per attacchi brute force, scansioni automatiche e tentativi di accesso non autorizzati.
+
+Il file principale di configurazione del server **SSH** è:
+
+<Terminal code="sudo nano /etc/ssh/sshd_config" />
+
+Prima di modificarlo, crea sempre una copia di backup:
+
+<Terminal code="sudo cp /etc/ssh/sshd_config /etc/ssh/sshd_config.bak" />
+
+Poi apri il file:
+
+<Terminal code="sudo nano /etc/ssh/sshd_config" />
+
+### Disabilitare il login diretto di root
+
+Cerca o aggiungi questa direttiva:
+
+```bash
+PermitRootLogin no
+```
+
+Questo impedisce l’accesso diretto via SSH all’utente root. L’amministrazione dovrà avvenire tramite un utente normale con privilegi sudo.
+
+Questa è una misura molto importante: anche se un attaccante conosce il nome utente root, non potrà usarlo direttamente per autenticarsi via SSH.
+
+### Usare le chiavi SSH al posto delle password
+
+L’autenticazione tramite chiave SSH è generalmente più robusta rispetto alla password, a patto che la chiave privata sia protetta correttamente.
+
+Sul computer client, genera una coppia di chiavi:
+
+<Terminal code="ssh-keygen -t ed25519 -C 'server-linux'" />
+
+Poi copia la chiave pubblica sul server:
+
+<Terminal code="ssh-copy-id nomeutente@IP_DEL_SERVER" />
+
+Dopo aver verificato che l’accesso con chiave funziona, puoi disabilitare l’accesso tramite password:
+
+```bash
+PasswordAuthentication no
+```
+
+<Warning>
+Attenzione: non disabilitare l’autenticazione con password prima di aver testato l’accesso con chiave da una nuova sessione SSH. Se sbagli configurazione, potresti rimanere bloccato fuori dal server.
+</Warning>
+
+### Limitare gli utenti autorizzati
+
+Puoi specificare quali utenti possono accedere via SSH:
+
+```bash
+AllowUsers nomeutente
+```
+
+In questo modo, anche se nel sistema esistono altri utenti, solo quelli indicati potranno autenticarsi tramite SSH.
+
+### Disabilitare funzionalità non necessarie
+
+Se non ti servono, puoi valutare queste opzioni:
+
+```bash
+X11Forwarding no
+```
+```bash
+AllowTcpForwarding no
+```
+```bash
+PermitEmptyPasswords no
+```
+
+`X11Forwarding no` disabilita l’inoltro grafico X11, quasi mai necessario su un server.
+
+`AllowTcpForwarding no` può ridurre l’abuso di SSH come tunnel, ma va usato con attenzione: se utilizzi SSH tunneling per amministrazione, VPN o debugging, potresti averne bisogno.
+
+`PermitEmptyPasswords` no impedisce l’accesso ad account senza password.
+
+
+### Verificare la configurazione SSH
+
+Prima di riavviare il servizio SSH, controlla che la configurazione sia valida:
+
+<Terminal code="sudo sshd -t" />
+
+Se non vengono mostrati errori, puoi riavviare SSH:
+
+<Terminal code="sudo systemctl restart ssh" />
+
+oppure, su alcune distribuzioni:
+
+<Terminal code="sudo systemctl restart sshd" />
+
+Controlla lo stato del servizio:
+
+<Terminal code="sudo systemctl status ssh" />
+
+oppure:
+
+<Terminal code="sudo systemctl status sshd" />
+
+<Info>
+Consiglio pratico: quando modifichi SSH su un server remoto, tieni sempre aperta una sessione SSH funzionante e prova la nuova configurazione da una seconda finestra. Solo dopo aver confermato che il nuovo accesso funziona, chiudi la sessione precedente.
+</Info>
+
+## Abilitare e configurare il firewall
+
+Un server dovrebbe esporre solo le porte strettamente necessarie. Tutto il resto deve rimanere chiuso.
+
+Su Ubuntu/Debian, uno strumento semplice ed efficace è UFW, acronimo di Uncomplicated Firewall.
+
+Installazione:
+
+<Terminal code="sudo apt install ufw -y" />
+
+Prima di abilitarlo, permetti l’accesso SSH, altrimenti rischi di bloccare la tua stessa connessione:
+
+<Terminal code="sudo ufw allow OpenSSH" />
+
+In alternativa, puoi specificare direttamente la porta:
+
+<Terminal code="sudo ufw allow 22/tcp" />
+
+Imposta le policy di default:
+
+<Terminal code="sudo ufw default deny incoming" />
+<Terminal code="sudo ufw default allow outgoing" />
+
+Queste regole negano il traffico in ingresso non autorizzato e permettono il traffico in uscita.
+
+Abilita il firewall:
+
+<Terminal code="sudo ufw enable" />
+
+Controlla lo stato:
+
+<Terminal code="sudo ufw status verbose" />
+
+Aprire porte per servizi specifici
+
+Se il server ospita un sito web:
+
+<Terminal code="sudo ufw allow 80/tcp" />
+<Terminal code="sudo ufw allow 443/tcp" />
+
+<Note> Se usi Docker, devi prestare attenzione: Docker può modificare regole iptables e pubblicare porte indipendentemente da UFW, a seconda della configurazione. In ambienti containerizzati è importante verificare sempre quali porte risultano effettivamente esposte dall’esterno.</Note>
+
+Per controllare le porte in ascolto:
+
+<Terminal code="sudo ss -tulpen" />
+
+Opzioni principali:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>`-t` mostra socket TCP.</li>
+  <li>`-u` mostra socket UDP.</li>
+  <li>`-l` mostra solo porte in ascolto.</li>
+  <li>`-p` mostra il processo associato.</li>
+  <li>`-e` mostra informazioni estese.</li>
+  <li>`-n` mostra indirizzi e porte in formato numerico.</li>
+</ul>
+
+## Installare e configurare Fail2ban
+
+Fail2ban è uno strumento che monitora i log del sistema e blocca temporaneamente gli indirizzi IP che generano troppi errori di autenticazione.
+
+È particolarmente utile per proteggere SSH da tentativi ripetuti di login.
+
+Installazione su Debian/Ubuntu:
+
+<Terminal code="sudo apt install fail2ban -y" />
+
+Verifica lo stato del servizio:
+
+<Terminal code="sudo systemctl status fail2ban" />
+
+Crea una configurazione locale:
+
+<Terminal code="sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local" />
+
+Apri il file:
+
+<Terminal code="sudo nano /etc/fail2ban/jail.local" />
+
+Una configurazione base per SSH può essere:
+
+<Terminal code="
+[sshd]
+enabled = true
+port = ssh
+logpath = %(sshd_log)s
+backend = systemd
+maxretry = 5
+findtime = 10m
+bantime = 1h" />
+
+Significato dei parametri:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>`enabled = true`: abilita la jail;</li>
+  <li>`port = ssh`: indica il servizio da proteggere;</li>
+  <li>`backend = systemd`: usa i log di systemd;</li>
+  <li>`maxretry = 5`: numero massimo di tentativi falliti;</li>
+  <li>`findtime = 10m`: finestra temporale in cui contare i tentativi;</li>
+  <li>`bantime = 1h`: durata del ban;</li>
+</ul>
+
+### Riavvia Fail2ban:
+
+<Terminal code="sudo systemctl restart fail2ban" />
+
+Controlla lo stato:
+
+<Terminal code="sudo fail2ban-client status" />
+
+Per vedere la jail SSH:
+
+<Terminal code="sudo fail2ban-client status sshd" />
+
+<Info>
+Fail2ban non sostituisce una configurazione SSH sicura. Deve essere considerato uno strato aggiuntivo di protezione.
+</Info>
+
+## Controllare i servizi attivi
+
+Ogni servizio attivo rappresenta una potenziale superficie d’attacco. Un server dovrebbe eseguire solo ciò che serve davvero.
+
+Per vedere i servizi attivi:
+
+<Terminal code="systemctl --type=service --state=running" />
+
+Per vedere tutti i servizi installati e il loro stato di abilitazione:
+
+<Terminal code="systemctl list-unit-files --type=service" />
+
+Per controllare un servizio specifico:
+
+<Terminal code="systemctl status nome-servizio" />
+
+Esempio:
+
+<Terminal code="systemctl status ssh" />
+
+Se trovi un servizio che non ti serve, puoi fermarlo:
+
+<Terminal code="sudo systemctl stop nome-servizio" />
+
+E impedirne l’avvio automatico:
+
+<Terminal code="sudo systemctl disable nome-servizio" />
+
+In alcuni casi puoi anche mascherarlo, impedendone l’avvio manuale o automatico:
+
+<Terminal code="sudo systemctl mask nome-servizio" />
+
+<Warning>
+Attenzione: prima di disabilitare o mascherare un servizio, assicurati di sapere a cosa serve. Alcuni servizi apparentemente secondari possono essere necessari per il corretto funzionamento del sistema.
+</Warning>
+
+### Controllare le porte aperte
+
+Oltre ai servizi systemd, è importante controllare quali porte sono realmente in ascolto:
+
+<Terminal code="sudo ss -tulpen" />
+
+Esempio di output semplificato:
+
+<Terminal code="
+Netid State  Local Address:Port  Process
+tcp   LISTEN 0.0.0.0:22          sshd
+tcp   LISTEN 0.0.0.0:80          nginx
+tcp   LISTEN 0.0.0.0:443         nginx
+" />
+
+Se trovi un servizio esposto su `0.0.0.0`, significa che ascolta su tutte le interfacce di rete IPv4. Se un servizio deve essere accessibile solo localmente, dovrebbe ascoltare su `127.0.0.1`.
+
+## Monitorare i log
+
+Un buon amministratore di sistema non aspetta che qualcosa si rompa per guardare i log. I log sono fondamentali per capire cosa accade sul server: accessi SSH, errori di servizio, tentativi falliti, crash, problemi di rete e attività sospette.
+
+Su sistemi moderni con systemd, lo strumento principale è journalctl.
+
+Per vedere i log generali:
+
+<Terminal code="sudo journalctl" />
+
+Per vedere i log del boot corrente:
+
+<Terminal code="sudo journalctl -b" />
+
+Per vedere i log di un servizio specifico:
+
+<Terminal code="sudo journalctl -u ssh" />
+
+oppure:
+
+<Terminal code="sudo journalctl -u sshd" />
+
+Per seguire i log in tempo reale:
+
+<Terminal code="sudo journalctl -f" />
+
+Per vedere gli ultimi 100 eventi:
+
+<Terminal code="sudo journalctl -n 100" />
+
+Per vedere i log da una certa data:
+
+<Terminal code="sudo journalctl --since '2026-06-01'" />
+Log di autenticazione
+
+Su Debian/Ubuntu, molti eventi di autenticazione sono registrati in:
+
+``` bash
+/var/log/auth.log
+```
+
+Puoi cercare tentativi falliti con:
+
+<Terminal code="sudo grep 'Failed password' /var/log/auth.log" />
+
+Oppure accessi riusciti:
+
+<Terminal code="sudo grep 'Accepted' /var/log/auth.log" />
+
+Su distribuzioni RHEL-like, i log di autenticazione si trovano spesso in:
+
+```bash
+/var/log/secure
+```
+
+Esempio:
+
+<Terminal code="sudo grep 'Failed password' /var/log/secure" />
+
+Cosa monitorare
+
+Su un server Linux dovresti controllare periodicamente:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>tentativi SSH falliti;</li>
+  <li>accessi riusciti;</li>
+  <li>uso di sudo;</li>
+  <li>errori dei servizi;</li>
+  <li>riavvii imprevisti;</li>
+  <li>porte aperte;</li>
+  <li>spazio disco;</li>
+  <li>aggiornamenti falliti;</li>
+  <li>attività anomale nei log;</li>
+</ul>
+
+### Comandi utili:
+```bash
+df -h
+```
+Mostra lo spazio disco.
+
+```bash
+free -h
+```
+Mostra l’utilizzo della memoria.
+
+```bash
+uptime
+```
+Mostra da quanto tempo il sistema è acceso e il carico medio.
+
+```bash
+top
+```
+Mostra processi e utilizzo risorse in tempo reale.
+
+Se disponibile, puoi usare anche:
+```bash
+htop
+```
+che offre una visualizzazione più comoda.
+
+## Impostare una strategia di backup
+
+Un server sicuro non è solo un server difficile da attaccare. È anche un server che può essere ripristinato rapidamente.
+
+Il backup non è opzionale. Prima o poi qualcosa può andare storto: errore umano, aggiornamento problematico, disco danneggiato, configurazione sbagliata, ransomware, compromissione o cancellazione accidentale.
+
+### Cosa salvare
+
+In genere, su un server Linux dovresti valutare il backup di:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>file di configurazione in `/etc`;</li>
+  <li>dati applicativi;</li>
+  <li>database;</li>
+  <li>directory web, ad esempio `/var/www`;</li>
+  <li>volumi Docker;</li>
+  <li>script personalizzati;</li>
+  <li>chiavi e certificati;</li>
+  <li>file `.env`, se usati da applicazioni;</li>
+  <li>configurazioni firewall;</li>
+  <li>configurazioni SSH;</li>
+</ul>
+
+<Warning>
+Attenzione: i backup possono contenere dati sensibili. Devono essere protetti, cifrati se necessario e accessibili solo a utenti autorizzati.
+</Warning>
+
+## Backup base con **rsync**
+
+Un esempio semplice con `rsync` per salvare la directory `/etc`:
+
+<Terminal code="sudo rsync -aAXv /etc /backup/server/" />
+
+Significato delle opzioni:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>`-a` modalità archivio, preserva permessi, timestamp, ecc;</li>
+  <li>`-A` preserva ACL;</li>
+  <li>`-X` preserva attributi estesi;</li>
+  <li>`-v` verbose, mostra output dettagliato;</li>
+</ul>
+
+Esempio per salvare una directory web:
+
+<Terminal code="sudo rsync -aAXv /var/www /backup/server/" />
+
+### Backup remoto
+
+Un backup locale è utile, ma non basta. Se il server viene compromesso o il disco si rompe, potresti perdere anche il backup.
+
+Meglio prevedere un backup remoto:
+
+<Terminal code="sudo rsync -aAXv /etc user@backup-server:/data/backups/server01/" />
+
+Per ambienti più seri, valuta strumenti come:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>BorgBackup;</li>
+  <li>Restic;</li>
+  <li>Duplicity;</li>
+  <li>snapshot ZFS o Btrfs;</li>
+  <li>backup gestiti dal provider cloud;</li>
+  <li>backup dei volumi Docker;</li>
+  <li>dump periodici dei database;</li>
+</ul>
+
+### Testare il restore
+
+Un backup non testato è solo una speranza.
+
+Devi verificare periodicamente di poter ripristinare i dati. Un piano di backup serio include sempre anche una procedura di restore.
+
+Domande da farsi:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>Dove sono salvati i backup?</li>
+  <li>Chi può accedervi?</li>
+  <li>Sono cifrati?</li>
+  <li>Ogni quanto vengono eseguiti?</li>
+  <li>Per quanto tempo vengono conservati?</li>
+  <li>È stato testato un ripristino?</li>
+  <li>Il backup include anche database e configurazioni?</li>
+  <li>Il backup è separato dal server principale?</li>
+</ul>
+
+## Disabilitare ciò che non serve
+
+Uno dei principi fondamentali della sicurezza è la riduzione della superficie d’attacco. Meno servizi, pacchetti e funzionalità sono attivi, minori sono le possibilità di errore o compromissione.
+
+Rimuovere pacchetti inutili
+
+Per vedere i pacchetti installati su Debian/Ubuntu:
+
+<Terminal code="dpkg -l" />
+
+Per rimuovere un pacchetto:
+
+<Terminal code="sudo apt remove nome-pacchetto" />
+
+Per rimuovere anche i file di configurazione:
+
+<Terminal code="sudo apt purge nome-pacchetto" />
+
+Per eliminare dipendenze non più necessarie:
+
+<Terminal code="sudo apt autoremove" />
+
+Su RHEL-like:
+
+<Terminal code="sudo dnf remove nome-pacchetto" />
+
+### Disabilitare servizi non necessari
+
+Come visto prima:
+
+<Terminal code="systemctl list-unit-files --type=service" />
+
+Poi:
+
+<Terminal code="sudo systemctl disable nome-servizio" />
+<Terminal code="sudo systemctl stop nome-servizio" />
+
+### Controllare software installato automaticamente
+
+A volte durante l’installazione vengono inclusi pacchetti non necessari per il ruolo del server. Ad esempio, su un server minimale non dovrebbero servire ambienti grafici, server di stampa, servizi Bluetooth o strumenti desktop.
+
+Un server dovrebbe essere costruito in base al suo ruolo:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>server web;</li>
+  <li>server database;</li>
+  <li>reverse proxy;;</li>
+  <li>host Docker;</li>
+  <li>server VPN;</li>
+  <li>server di backup;</li>
+  <li>laboratorio di test.</li>
+</ul>
+
+<Note> Ogni ruolo dovrebbe avere solo i componenti necessari. </Note>
+
+
+
+## Proteggere file e permessi
+
+I permessi Linux sono una parte essenziale della sicurezza. Un file con permessi troppo permissivi può esporre dati sensibili o consentire modifiche non autorizzate.
+
+Per vedere i permessi di file e directory:
+
+<Terminal code="ls -l" />
+
+Esempio di output:
+
+<Terminal code="-rw------- 1 root root  1200 Jun  6 10:00 file.conf" />
+
+In questo esempio, il file `file.conf` appartiene all’utente `root` e al gruppo `root`. I permessi indicano che solo il proprietario può leggere e scrivere il file.
+
+I permessi Linux sono divisi in tre categorie:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li><strong>proprietario</strong>: l’utente proprietario del file o della directory;</li>
+  <li><strong>gruppo</strong>: il gruppo associato al file o alla directory;</li>
+  <li><strong>altri utenti</strong>: tutti gli utenti che non sono né proprietari né membri del gruppo associato.</li>
+</ul>
+
+I tre permessi principali sono:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li> `r` lettura, cioè possibilità di leggere il contenuto;</li>
+  <li> `w` scrittura, cioè possibilità di modificare il contenuto;</li>
+  <li> `x` esecuzione, cioè possibilità di eseguire un file o attraversare una directory.</li>
+</ul>
+
+### Evitare chmod 777
+
+Uno degli errori peggiori è usare permessi troppo permissivi senza una reale necessità.
+
+<Terminal code="chmod 777 file" />
+
+Questo comando concede lettura, scrittura ed esecuzione a tutti: proprietario, gruppo e altri utenti. È quasi sempre una scelta sbagliata, soprattutto su server esposti in rete.
+
+<Warning>
+Non usare <strong>`chmod 777`</strong> come soluzione rapida quando un servizio non riesce ad accedere a un file. Prima individua quale utente esegue il servizio, quale gruppo utilizza e quali permessi sono realmente necessari.
+</Warning>
+
+Meglio assegnare solo i permessi necessari.
+
+Esempio: solo il proprietario può leggere e scrivere il file.
+
+<Terminal code="chmod 600 file_riservato" />
+
+Esempio: solo il proprietario può accedere alla directory.
+
+<Terminal code="chmod 700 directory_privata" />
+
+Esempio: il proprietario può scrivere, mentre gli altri possono solo leggere.
+
+<Terminal code="chmod 644 file_pubblico" />
+
+Esempio: il proprietario può modificare la directory, mentre gli altri possono leggerla ed entrarci.
+
+<Terminal code="chmod 755 directory_web" />
+
+<Info>
+In generale, i file sensibili come chiavi private, file <strong>.env</strong>, configurazioni con password e certificati non dovrebbero essere leggibili da tutti gli utenti del sistema.
+</Info>
+
+### Controllare proprietario e gruppo
+
+Oltre ai permessi, è fondamentale controllare anche proprietario e gruppo dei file.
+
+Per cambiare proprietario e gruppo:
+
+<Terminal code="sudo chown utente:gruppo file" />
+
+Esempio su una directory web:
+
+<Terminal code="sudo chown www-data:www-data /var/www/html -R" />
+
+<Warning>
+L’opzione <strong>`-R`</strong> applica il comando in modo ricorsivo a tutti i file e sottodirectory. Usala solo quando sei sicuro del percorso, perché un errore su una directory critica può rompere permessi importanti del sistema.
+</Warning>
+
+
+
+## Configurare sudo con attenzione
+
+Il comando `sudo` è potente. Non tutti gli utenti dovrebbero avere privilegi amministrativi.
+
+Per vedere chi appartiene al gruppo `sudo`:
+
+<Terminal code="getent group sudo" />
+
+Su alcune distribuzioni il gruppo amministrativo può essere `wheel`:
+
+<Terminal code="getent group wheel" />
+
+Per modificare in sicurezza il file `sudoers`, usa sempre:
+
+<Terminal code="sudo visudo" />
+
+Non modificare direttamente `/etc/sudoers` con un editor normale, perché un errore di sintassi potrebbe bloccare l’uso di `sudo`.
+
+<Info>
+Il principio da seguire è il <strong>least privilege</strong>, cioè il principio del minimo privilegio: ogni utente deve avere solo i permessi necessari per svolgere il proprio compito.
+</Info>
+
+In un server ben configurato:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>solo gli amministratori reali dovrebbero poter usare `sudo`;</li>
+  <li>gli utenti applicativi non dovrebbero avere privilegi amministrativi;</li>
+  <li>gli account inutilizzati dovrebbero essere rimossi o bloccati;</li>
+  <li>le azioni amministrative dovrebbero essere tracciabili nei log.</li>
+</ul>
+
+
+
+## Verificare utenti locali e accessi
+
+Su un server appena installato è utile controllare quali utenti esistono.
+
+Per vedere gli utenti locali:
+
+<Terminal code="cat /etc/passwd" />
+
+Per vedere solo gli utenti con shell interattiva:
+
+<Terminal code="grep -E '/bin/bash|/bin/sh|/bin/zsh' /etc/passwd" />
+
+Controlla anche gli ultimi accessi:
+
+<Terminal code="last" />
+
+E gli ultimi tentativi falliti, se il comando è disponibile:
+
+<Terminal code="lastb" />
+
+Per vedere chi è attualmente collegato:
+
+<Terminal code="who" />
+
+oppure:
+
+<Terminal code="w" />
+
+Se trovi utenti sospetti, account inutilizzati o shell interattive non necessarie, devi analizzare la situazione prima di rimuovere o bloccare l’account.
+
+Per bloccare un account:
+
+<Terminal code="sudo usermod -L nomeutente" />
+
+Per sbloccarlo:
+
+<Terminal code="sudo usermod -U nomeutente" />
+
+<Warning>
+Non eliminare utenti di sistema senza sapere a cosa servono. Molti servizi Linux usano account dedicati per funzionare con privilegi limitati.
+</Warning>
+
+
+
+## Impostare hostname e timezone corretti
+
+Anche se non sembra una misura di sicurezza diretta, una corretta configurazione di hostname e timezone è importante per amministrazione, logging e troubleshooting.
+
+Per vedere l’hostname:
+
+<Terminal code="hostnamectl" />
+
+Per cambiarlo:
+
+<Terminal code="sudo hostnamectl set-hostname server01" />
+
+Per vedere la timezone:
+
+<Terminal code="timedatectl" />
+
+Per impostarla, ad esempio su Roma:
+
+<Terminal code="sudo timedatectl set-timezone Europe/Rome" />
+
+<Note>Log con orari sbagliati rendono molto più difficile ricostruire incidenti, accessi sospetti, errori applicativi o malfunzionamenti di sistema.</Note>
+
+
+
+## Sincronizzare l’orario
+
+La sincronizzazione dell’orario è importante per log, certificati, autenticazione, sistemi distribuiti e troubleshooting.
+
+Controlla lo stato:
+
+<Terminal code="timedatectl status" />
+
+Se NTP non è attivo, puoi abilitarlo:
+
+<Terminal code="sudo timedatectl set-ntp true" />
+
+Su molti sistemi moderni viene usato `systemd-timesyncd`, ma in altri ambienti potresti trovare `chrony` o altri demoni NTP.
+
+<Info>
+Un orario non sincronizzato può causare problemi con certificati TLS, autenticazione, log centralizzati, backup schedulati e sistemi distribuiti.
+</Info>
+
+
+## Installare strumenti base di amministrazione
+
+Un server minimale può non includere strumenti utili per diagnosi e gestione.
+
+Su Debian/Ubuntu:
+
+<Terminal code="sudo apt install curl wget git vim nano htop net-tools dnsutils traceroute tcpdump lsof unzip ca-certificates gnupg -y" />
+
+Questi strumenti aiutano in attività come:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>test HTTP con `curl`;</li>
+  <li>download di file con `wget`;</li>
+  <li>versionamento e download repository con `git`;</li>
+  <li>editing di file con `vim` o `nano`;</li>
+  <li>analisi DNS con `dig` e `nslookup`;</li>
+  <li>troubleshooting rete con `traceroute`;</li>
+  <li>analisi pacchetti con `tcpdump`;</li>
+  <li>controllo file aperti con `lsof`;</li>
+  <li>monitoraggio processi con `htop`.</li>
+</ul>
+
+<Note>Non bisogna però installare strumenti inutili “per abitudine”. Ogni pacchetto aggiunto aumenta leggermente la superficie del sistema. Installa ciò che serve davvero.</Note>
+
+
+
+## Controllare la configurazione di rete
+
+Per vedere gli indirizzi IP configurati sul server:
+
+<Terminal code="ip addr" />
+
+Per vedere le rotte:
+
+<Terminal code="ip route" />
+
+Per testare la connettività verso Internet:
+
+<Terminal code="ping 8.8.8.8" />
+
+Per testare la risoluzione DNS:
+
+<Terminal code="dig google.com" />
+
+oppure:
+
+<Terminal code="nslookup google.com" />
+
+Per vedere connessioni attive:
+
+<Terminal code="ss -tunap" />
+
+Questi comandi sono fondamentali per capire come il server comunica con la rete e quali servizi stanno usando connessioni attive.
+
+<Info>
+Durante l’hardening, non basta sapere quali servizi sono installati. Devi anche verificare quali porte sono aperte, quali indirizzi sono in ascolto e quali processi stanno comunicando in rete.
+</Info>
+
+
+
+## Proteggere Docker, se installato
+
+Se il server verrà usato come host Docker, l’hardening deve includere anche Docker.
+
+Docker è estremamente utile, ma una configurazione sbagliata può esporre servizi, volumi, socket o dati sensibili.
+
+Alcuni punti importanti:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>non eseguire container privilegiati se non necessario;</li>
+  <li>evitare l’uso di `--privileged`;</li>
+  <li>non montare `/` o directory sensibili dentro i container;</li>
+  <li>usare immagini ufficiali o affidabili;</li>
+  <li>aggiornare regolarmente le immagini;</li>
+  <li>non esporre porte inutili;</li>
+  <li>usare network Docker separati;</li>
+  <li>proteggere i file `.env`;</li>
+  <li>limitare i permessi sui volumi;</li>
+  <li>non inserire segreti direttamente nei Dockerfile;</li>
+  <li>controllare cosa viene pubblicato con `docker ps`.</li>
+</ul>
+
+Comando utile:
+
+<Terminal code="docker ps" />
+
+Per vedere le porte esposte:
+
+<Terminal code='docker ps --format "table {{.Names}}\t{{.Ports}}"' />
+
+<Warning>
+Un errore comune è pensare che UFW protegga automaticamente tutto anche in presenza di Docker. In realtà Docker può gestire direttamente regole firewall e NAT. Per questo bisogna sempre verificare dall’esterno quali porte risultano davvero raggiungibili.
+</Warning>
+
+
+
+## Checklist finale
+
+Dopo aver completato l’hardening iniziale, puoi usare questa checklist di controllo.
+
+### Aggiornamenti
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>Il sistema è aggiornato.</li>
+  <li>È stata definita una strategia per gli aggiornamenti di sicurezza.</li>
+  <li>È stato verificato se serve un riavvio.</li>
+</ul>
+
+### Utenti
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>È stato creato un utente amministrativo dedicato.</li>
+  <li>L’accesso diretto come root è disabilitato.</li>
+  <li>Solo gli utenti necessari hanno privilegi sudo.</li>
+  <li>Gli account inutilizzati sono stati rimossi o bloccati.</li>
+</ul>
+
+### SSH
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>Il login root via SSH è disabilitato.</li>
+  <li>L’accesso con chiave SSH è configurato.</li>
+  <li>L’autenticazione con password è disabilitata, se possibile.</li>
+  <li>Gli utenti SSH sono limitati con `AllowUsers`.</li>
+  <li>La configurazione è stata testata con `sshd -t`.</li>
+</ul>
+
+### Firewall
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>UFW o un altro firewall è attivo.</li>
+  <li>La policy di default blocca il traffico in ingresso non autorizzato.</li>
+  <li>Sono aperte solo le porte necessarie.</li>
+  <li>Le porte esposte sono state verificate con `ss`.</li>
+</ul>
+
+### Fail2ban
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>Fail2ban è installato.</li>
+  <li>La jail SSH è attiva.</li>
+  <li>I ban vengono registrati e controllati.</li>
+  <li>I parametri <strong>maxretry</strong>, <strong>findtime</strong> e <strong>bantime</strong> sono adeguati.</li>
+</ul>
+
+### Servizi
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>Sono attivi solo i servizi necessari.</li>
+  <li>I servizi inutili sono stati fermati e disabilitati.</li>
+  <li>Le porte in ascolto sono state controllate.</li>
+</ul>
+
+### Log
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>I log di sistema sono consultabili.</li>
+  <li>Gli accessi SSH vengono monitorati.</li>
+  <li>Gli errori dei servizi vengono controllati.</li>
+  <li>Gli orari del sistema sono corretti.</li>
+</ul>
+
+### Backup
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>È stato definito cosa salvare.</li>
+  <li>I backup sono automatici o pianificati.</li>
+  <li>Esiste almeno una copia remota.</li>
+  <li>Il restore è stato testato.</li>
+  <li>I backup contenenti dati sensibili sono protetti.</li>
+</ul>
+
+### Permessi
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>I file sensibili non sono leggibili da tutti.</li>
+  <li>Non vengono usati permessi `777` senza motivo.</li>
+  <li>Proprietari e gruppi sono configurati correttamente.</li>
+  <li>I file `.env`, chiavi private e configurazioni sono protetti.</li>
+</ul>
+
+
+
+## Conclusione
+
+L’hardening di un server Linux non è una singola operazione, ma un processo. Un server sicuro richiede configurazione iniziale, manutenzione, aggiornamenti, monitoraggio e backup.
+
+Per uno studente, questa checklist è un ottimo punto di partenza perché introduce concetti fondamentali di amministrazione di sistema e cybersecurity: gestione utenti, privilegi, SSH, firewall, servizi, log, backup e riduzione della superficie d’attacco.
+
+La mentalità corretta è semplice: esporre solo ciò che serve, concedere solo i permessi necessari, monitorare ciò che accade e prepararsi sempre al ripristino.
+
+Un server ben configurato non è solo più sicuro. È anche più ordinato, più prevedibile e più facile da gestire.
+
+
+
+
+
+
+
+
+</article>

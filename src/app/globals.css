@@ -18,7 +18,9 @@
 /* Stile del contenitore principale della card */
 .step-card-container {
   position: relative;
+  margin-top: 2.5rem;
   margin-bottom: 2.5rem;
+  padding-bottom: 2.5rem;
   padding-left: 5rem;
   /* Spazio per il pallino e la linea */
 }
@@ -105,6 +107,7 @@
 
 .article-content p {
   margin-bottom: 1.5rem;
+  margin-top: 1.5rem;
 }
 
 .article-content code {
@@ -113,6 +116,7 @@
   padding: 0.2rem 0.4rem;
   border-radius: 0.25rem;
   font-family: monospace;
+  font-size: 0.95rem;
 }
 
 .article-content img {
