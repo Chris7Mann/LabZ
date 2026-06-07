@@ -55,7 +55,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
     const { data, content } = article;
 
     return (
-        <main className="min-h-screen bg-black py-20">
+        <main className="min-h-screen py-20">
             <article className="max-w-3xl mx-auto px-4 sm:px-6 md:px-8 text-zinc-300">
 
                 {/* Immagine di copertina (stile largo come nei lab) */}
