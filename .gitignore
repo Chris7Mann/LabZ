@@ -39,3 +39,19 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Configurazione
+.env.local
+docker/
+nginx/
+Dockerfile
+docker-compose.yml
+docker-compose.yaml
+.npm/
+
+# Log e Vari
+*.log
+CLAUDE.md
+AGENTS.md
+.eslintcache
+
