@@ -1,3 +1,6 @@
+'use client';
+import Link from "next/link";
+
 export default function Footer() {
   return (
     <footer className="bg-zinc-950 border-t border-zinc-800 py-12 px-8">
@@ -31,17 +34,15 @@ export default function Footer() {
           <h3 className="text-white font-bold uppercase text-sm tracking-widest">Legal</h3>
           <ul className="space-y-2 text-zinc-500 text-sm">
             <li>
-              <a href="https://www.iubenda.com/privacy-policy/25063032" 
-                  className="iubenda-black iubenda-noiframe iubenda-embed iubenda-no-cmp text-xs hover:text-emerald-400 transition-colors" 
-                  title="Privacy Policy">Privacy Policy
-              </a>
+              <Link href="/privacy-policy" className="hover:text-emerald-400 transition-colors">
+                [PRIVACY_POLICY]
+              </Link>
             </li>
 
             <li>
-                <a href="https://www.iubenda.com/privacy-policy/25063032/cookie-policy" 
-                  className="iubenda-black iubenda-noiframe iubenda-embed iubenda-no-cmp text-xs hover:text-emerald-400 transition-colors" 
-                  title="Cookie Policy">Cookie Policy
-                </a>
+              <Link href="/cookie-policy" className="hover:text-emerald-400 transition-colors">
+                [COOKIE_POLICY]
+              </Link>
             </li>
           </ul>
         </div>
