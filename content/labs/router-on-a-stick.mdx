@@ -47,12 +47,10 @@ switchport trunk allowed vlan none
 # Permettere tutte le VLAN
 switchport trunk allowed vlan all"/>
 
-<Note>
-**Nota Importante:** Quando ci sono più switch nel router on a stick,devi mettere sempre le porte che collegano i vari switch 
+<Note> **Nota Importante:** Quando ci sono più switch nel router on a stick,devi mettere sempre le porte che collegano i vari switch 
 fra loro in trunk e quando ci sarà la ridondanza con tanti switch su cui passano i pacchetti devi creare su tutti gli switch 
 le varie vlan (anche se non colleghi nessuna porta delle vlan interessate su quello switch) altrimenti scarterebbe i pacchetti 
-che gli arrivano di quelle vlan se non le crei sopra ognuno di loro
-</Note>
+che gli arrivano di quelle vlan se non le crei sopra ognuno di loro </Note>
 
 </StepCard>
 
@@ -91,10 +89,10 @@ Comandi per mettere in trunk la porta dello switch che si collega al router.
 Switch(config)# interface fa0/24 
 Switch(config-if)# switchport mode trunk"/>
 
-<Note>
+<Warning>
 **Attenzione:** Eseguire questa configurazione solo dopo aver attivato l'interfaccia fisica del router con il comando **no shutdown**, 
 per assicurarsi che la porta sia attiva e per evitare bug di sincronizzazione in Packet Tracer
-</Note>
+</Warning>
 
 </StepCard>
 
@@ -104,12 +102,17 @@ Verifichiamo le configurazioni del router.
 
 </StepCard>
 
-<SectionTitle>Router on a Stick</SectionTitle>
+
+
 <Text>
+## Router on a Stick
+
+
 Il **"Router on a stick"** (ROAS) è una tecnica di rete che permette a un singolo router di instradare il traffico 
 tra più VLAN (reti virtuali) utilizzando una sola interfaccia fisica. Riduce i costi hardware ma può creare strozzature di banda, 
 poiché tutto il traffico inter-VLAN deve passare attraverso un unico collegamento.
 </Text>
+
 
 <StepCard label="A" title="Per far collegare due Router on a Stick">
 Assegnare gli ip + maschera (essendo due puoi mettere /30) alle porte dei 2 router che si collegheranno fra di loro.
@@ -138,10 +141,8 @@ Router1(config)# ip route 192.168.2.0 255.255.255.0 10.0.0.1
 Router1(config)# ip route 192.168.3.0 255.255.255.0 10.0.0.1  
 Router1(config)# exit "/>
 
-<Note>
-**Suggerimento:** se si vuole fare le route in modo più efficace e veloce 
+<Note>**Suggerimento:** se si vuole fare le route in modo più efficace e veloce 
 (senza dover complicare la vita facendo subnetting al millimetro) basta dividere la rete 
-e mettere la maschera /24 (255.0) così che copre tutti gli indirizzi di una rete da 0 a 255.
-</Note>
+e mettere la maschera /24 (255.0) così che copre tutti gli indirizzi di una rete da 0 a 255.</Note>
 
 </StepCard>

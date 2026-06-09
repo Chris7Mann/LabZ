@@ -24,6 +24,17 @@ export default function RecentArticles() {
                         key={article.slug}
                         className="group border border-zinc-800 bg-zinc-900/30 p-6 rounded-xl hover:border-emerald-500/50 transition-all flex flex-col gap-4"
                     >
+
+                        {/* Immagine della card */}
+                        {article.coverImage && (
+                            <div className="w-full h-40 overflow-hidden">
+                                <img
+                                    src={article.coverImage}
+                                    alt={article.title}
+                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                />
+                            </div>
+                        )}
                         <div className="flex flex-col gap-1">
                             <h3 className="text-white font-bold group-hover:text-emerald-400 transition-colors">
                                 {article.title}

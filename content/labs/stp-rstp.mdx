@@ -13,17 +13,15 @@ tags: ["NETWORKING", "SWITCHING", "CISCO"]
 per prevenire i loop (anelli) di trasmissione, garantendo l'affidabilità della LAN. Entrambi bloccano le porte ridondanti 
 per creare una topologia ad albero, attivandole solo in caso di guasto del collegamento principale
 
-    <Note>
-        Nella maggior parte degli switch moderni, STP è attivo di default, quindi spesso il lavoro dell'amministratore 
-        consiste nell'ottimizzarlo per assicurarsi che lo switch più potente diventi il centro della rete.
-    </Note>
+    <Note>Nella maggior parte degli switch moderni, STP è attivo di default, quindi spesso il lavoro dell'amministratore 
+        consiste nell'ottimizzarlo per assicurarsi che lo switch più potente diventi il centro della rete.</Note>
 
 ![stp-rstp-lab](/images/stp-lab.png)
 
 <StepCard label="A" title="Selezione del Root Bridge (Priorità)">
 
 Per evitare che uno switch vecchio o lento venga eletto come "capo" della rete, devi forzare la priorità. 
-La priorità di default è **32768**. Più basso è il valore, più alta è la priorità.
+La priorità di default è **`32768`**. Più basso è il valore, più alta è la priorità.
 
 <Terminal code="# Entra in configurazione
 Switch# configure terminal
@@ -42,7 +40,7 @@ questo creerebbe un collo di bottiglia disastroso.
 La tua logica deve essere:
 
   - Identifica lo switch con la larghezza di banda maggiore (es. quello con porte a 10Gbps) e assegna priorità 4096.
-  - Identifica lo switch di riserva e assegna priorità **8192**.
+  - Identifica lo switch di riserva e assegna priorità **`8192`**.
 
 <Terminal code="# Se vuoi che lo Switch-A sia il primario:
 Switch(config)# spanning-tree vlan 1 priority 4096
@@ -51,21 +49,21 @@ Switch(config)# spanning-tree vlan 1 priority 8192 "/>
 
 
 
-<Note>
+<Note> 
 **Trucco Rapido:** Sui sistemi Cisco esiste un comando scorciatoia che calcola i valori per te senza dover 
 ricordare i multipli di 4096:
 
-  - **spanning-tree vlan 1 root primary**: imposta la priorità a **24576** (o meno) per battere gli altri.
+**`spanning-tree vlan 1 root primary`**: imposta la priorità a **`24576`** (o meno) per battere gli altri.
 
-  - **spanning-tree vlan 1 root secondary**: imposta la priorità a **28672**.
+**`spanning-tree vlan 1 root secondary`**: imposta la priorità a **`28672`**.
 
-  Questo comando è preferibile perché automatizza il calcolo della priorità rispetto agli altri switch rilevati nella rete.
+Questo comando è preferibile perché automatizza il calcolo della priorità rispetto agli altri switch rilevati nella rete.
 </Note>
 
 </StepCard>
 
 <StepCard label="C" title="Abilitare il protocollo rapido (RSTP)">
-Il protocollo standard (802.1D) è lento: impiega circa 30-50 secondi per ripristinare un link. 
+Il protocollo standard *`(802.1D)`* è lento: impiega circa 30-50 secondi per ripristinare un link. 
 Si consiglia quasi sempre di passare a Rapid-PVST+, che converge in pochi secondi.
 
 <Terminal code="

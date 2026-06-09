@@ -49,7 +49,7 @@ export default async function LabPage({ params }: { params: Promise<{ slug: stri
   return (
     <article className="max-w-3xl mx-auto px-8 py-20 text-zinc-300">
       {data.coverImage && (
-        <img className="iubenda-no-cmp w-full h-64 object-cover rounded-xl mb-10 border border-zinc-800" 
+        <img className="w-full h-[400px] object-cover rounded-xl mb-10 border border-zinc-800" 
         src={data.coverImage}
           alt={data.title} />
       )}
@@ -58,7 +58,7 @@ export default async function LabPage({ params }: { params: Promise<{ slug: stri
       <h1 className="text-4xl font-bold text-white mb-2">{data.title}</h1>
       <p className="text-zinc-500 font-mono mb-8">{data.date} • {data.author} • {data.tech} • {data.difficulty}</p>
 
-      <div className="prose prose-invert prose-emerald max-w-none">
+      <div className="prose prose-invert prose-emerald max-w-none labs-content">
         <MDXRemote
           source={content}
           components={components} />

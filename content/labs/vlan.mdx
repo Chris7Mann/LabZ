@@ -1,0 +1,1182 @@
+---
+title: "Creazione VLAN e Routing Inter-VLAN"
+coverImage: /images/vlan-lab.png
+date: "08-06-2026"
+author: "ChrisMann"
+tech: "CISCO"
+difficulty: "MEDIUM"
+excerpt: "Creazione VLAN e Routing Inter-VLAN"
+tags: ["VLAN", "ROUTING", "CISCO"]
+---
+
+
+In una rete reale, collegare tutti i dispositivi allo stesso switch e lasciarli nella stessa rete logica non è quasi mai una buona scelta. All’inizio può sembrare semplice, ma appena la rete cresce iniziano i problemi: troppo traffico broadcast, poca separazione tra reparti, scarsa sicurezza e difficoltà nella gestione.
+
+Le VLAN, cioè Virtual LAN, servono proprio a risolvere questo problema. Una VLAN permette di dividere logicamente una rete fisica in più reti separate. Questo significa che dispositivi collegati allo stesso switch possono appartenere a reti diverse, come se fossero collegati a switch separati.
+
+In questo lab vedremo:
+
+<ul className="list-disc pl-6 space-y-1 mb-4">
+    <li>cosa sono le VLAN;</li>
+    <li>perché si usano;</li>
+    <li>come creare VLAN su uno switch Cisco;</li> 
+    <li>come assegnare le porte alle VLAN;</li>
+    <li>come configurare un trunk;</li>
+    <li>come configurare il routing tra VLAN diverse;</li>
+    <li>come verificare e diagnosticare eventuali errori.</li>
+</ul>
+
+L’obiettivo non è solo copiare comandi, ma capire cosa fa ogni comando e perché viene usato. Alla fine del lab, dovresti essere in grado di creare una rete con più VLAN, configurare il routing tra di esse e risolvere eventuali problemi che potrebbero sorgere.
+
+## Scenario del lab
+
+Immaginiamo una piccola rete aziendale o didattica composta da tre reparti:
+
+<ul className="list-disc pl-6 space-y-1 mb-4">
+    <li>VLAN 10 - STUDENTI;</li>
+    <li>VLAN 20 - DOCENTI;</li>
+    <li>VLAN 30 - SERVER.</li>
+</ul>
+
+Ogni reparto deve essere separato dagli altri a livello Layer 2. Questo significa che i broadcast della VLAN 10 non devono arrivare alla VLAN 20 o alla VLAN 30.
+
+Tuttavia, in alcuni casi, i dispositivi delle VLAN devono comunicare tra loro. Per esempio, un PC nella VLAN 10 potrebbe dover raggiungere un server nella VLAN 30. Per permettere questa comunicazione serve il routing inter-VLAN.
+
+Una VLAN da sola separa il traffico. Il routing inter-VLAN permette invece la comunicazione controllata tra VLAN diverse.
+
+![vlan-labs](/images/vlan.png)
+
+Il collegamento tra router e switch sarà configurato come trunk. Il trunk trasporta il traffico di più VLAN sullo stesso collegamento fisico.
+
+Il router userà delle subinterfacce, una per ogni VLAN. Questo metodo viene chiamato Router-on-a-Stick.
+
+## Piano di indirizzamento IP
+
+Prima di configurare la rete, definiamo un piano IP ordinato.
+
+<div className="table-container">
+   <table className='my-custom-table'>
+    <thead>
+        <tr>
+            <th>VLAN</th>
+            <th>Nome VLAN</th>
+            <th>Rete</th>
+            <th>Gateway</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>10</td>
+            <td>STUDENTI</td>
+            <td>192.168.10.0/24</td>
+            <td>192.168.10.1</td>
+        </tr>
+        <tr>
+            <td>20</td>
+            <td>DOCENTI</td>
+            <td>192.168.20.0/24</td>
+            <td>192.168.20.1</td>
+        </tr>
+        <tr>
+            <td>30</td>
+            <td>SERVER</td>
+            <td>192.168.30.0/24</td>
+            <td>192.168.30.1</td>
+        </tr>
+    </tbody>
+    </table>
+</div>
+
+I dispositivi finali avranno questi indirizzi:
+
+<div className="table-container">
+    <table className='my-custom-table'>
+        <thead>
+            <tr>
+                <th>Dispositivo</th>
+                <th>VLAN</th>
+                <th>IP</th>
+                <th>Gateway</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>PC1</td>
+                <td>10</td>
+                <td>192.168.10.10/24</td>
+                <td>192.168.10.1</td>
+            </tr>
+            <tr>
+                <td>PC2</td>
+                <td>20</td>
+                <td>192.168.20.10/24</td>
+                <td>192.168.20.1</td>
+            </tr>
+            <tr>
+                <td>SRV1</td>
+                <td>30</td>
+                <td>192.168.30.10/24</td>
+                <td>192.168.30.1</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+Il gateway di ogni VLAN sarà configurato sul router, tramite subinterfacce.
+
+
+<StepCard label="A" title="Creazione delle VLAN sullo switch">
+
+Entriamo nella configurazione dello switch.
+
+<Terminal code=" 
+Switch# enable 
+Switch# configure terminal
+"/>
+
+Spiegazione dei comandi
+
+`enable`
+
+Questo comando permette di passare dalla modalità utente alla modalità privilegiata. In modalità privilegiata possiamo eseguire comandi di verifica avanzati, salvare la configurazione e accedere alla configurazione globale.
+
+`configure terminal`
+
+Questo comando permette di entrare nella modalità di configurazione globale. Da qui possiamo modificare la configurazione dello switch.
+
+</StepCard>
+
+<StepCard label="B" title="Creazione VLAN 10">
+
+<Terminal code=" 
+Switch(config)# vlan 10 
+Switch(config)# name STUDENTI 
+Switch(config)# exit
+"/>
+
+Spiegazione
+
+`vlan 10`
+
+Crea la VLAN con ID 10 oppure entra nella configurazione della VLAN 10 se esiste già.
+
+L’ID della VLAN è il numero che identifica quella rete logica. Gli switch usano questo ID per separare il traffico.
+
+`name STUDENTI`
+
+Assegna un nome descrittivo alla VLAN. Il nome non è obbligatorio per il funzionamento, ma è molto utile per la gestione e il troubleshooting.
+
+`exit`
+
+Esce dalla modalità di configurazione della VLAN e torna alla configurazione globale
+
+</StepCard>
+
+
+<StepCard label="C" title="Creazione VLAN 20">
+
+<Terminal code=" 
+Switch(config)# vlan 20 
+Switch(config)# name DOCENTI 
+Switch(config)# exit
+"/>
+
+La logica è la stessa della VLAN 10. Stiamo creando una seconda rete logica separata.
+
+</StepCard>
+
+<StepCard label="D" title="Creazione VLAN 30" >
+
+<Terminal code=" 
+Switch(config)# vlan 30 
+Switch(config)# name SERVER 
+Switch(config)# exit
+"/>
+
+La VLAN 30 sarà dedicata ai server. In un ambiente reale, separare i server dai client è una pratica importante perché permette di applicare regole di sicurezza più precise.
+
+</StepCard>
+
+<StepCard label="E" title="Verifica delle VLAN create">
+
+Dopo aver creato le VLAN, dobbiamo verificare che siano realmente presenti nello switch.
+
+<Terminal code="
+Switch# show vlan brief"
+ />
+
+Questo comando mostra un riepilogo delle VLAN configurate sullo switch.
+
+Un output corretto dovrebbe essere simile a questo:
+
+<Terminal code="
+VLAN  |  Name  |  Status  |  Ports
+--------------------------------
+1     |  default         |   active
+10   |  STUDENTI        |    active
+20   |  DOCENTI         |    active
+30   |  SERVER          |    active" />
+
+Il comando `show vlan brief` è uno dei comandi più importanti quando si lavora con le VLAN.
+
+Permette di controllare:
+
+<ul className="list-disc pl-6 space-y-1 mb-4">
+    <li>quali VLAN esistono sullo switch;</li>
+    <li>il nome assegnato a ogni VLAN;</li>
+    <li>lo stato della VLAN;</li>
+    <li>quali porte appartengono a ogni VLAN.</li>
+</ul>
+
+<Info>
+In questa fase le VLAN sono state create, ma non abbiamo ancora assegnato nessuna porta. Per questo motivo, accanto alle VLAN 10, 20 e 30 potresti non vedere ancora nessuna interfaccia.
+</Info>
+
+</StepCard>
+
+<StepCard label="F" title="Assegnazione delle porte alle VLAN">
+
+Ora dobbiamo associare le porte dello switch alle VLAN corrette.
+
+Nel nostro scenario useremo questa mappatura:
+
+<div className="table-container">
+    <table className='my-custom-table'>
+        <thead>
+            <tr>
+                <th>Porta switch</th>
+                <th>Dispositivo</th>
+                <th>VLAN</th>
+                <th>Reparto</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>FastEthernet0/1</td>
+                <td>PC1</td>
+                <td>10</td>
+                <td>STUDENTI</td>
+            </tr>
+            <tr>
+                <td>FastEthernet0/2</td>
+                <td>PC2</td>
+                <td>20</td>
+                <td>DOCENTI</td>
+            </tr>
+            <tr>
+                <td>FastEthernet0/3</td>
+                <td>SRV1</td>
+                <td>30</td>
+                <td>SERVER</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+Una porta collegata a un dispositivo finale, come un PC o un server, viene configurata normalmente come **porta access**.
+
+Una porta access appartiene a una sola VLAN e trasporta traffico non taggato verso il dispositivo finale.
+
+</StepCard>
+
+<StepCard label="G" title="Configurazione porta per PC1 - VLAN 10">
+
+Configuriamo la porta `FastEthernet0/1`, dove sarà collegato PC1.
+
+<Terminal code="
+Switch# configure terminal
+Switch(config)# interface fastEthernet 0/1
+Switch(config-if)# description PC1_STUDENTI
+Switch(config-if)# switchport mode access
+Switch(config-if)# switchport access vlan 10
+Switch(config-if)# no shutdown
+Switch(config-if)# exit "
+/>
+
+Spiegazione dei comandi:
+
+`interface fastEthernet 0/1`
+
+Entra nella configurazione dell’interfaccia `FastEthernet0/1`.
+
+Questa è la porta fisica dello switch a cui collegheremo PC1.
+
+`description PC1_STUDENTI`
+
+Aggiunge una descrizione alla porta.
+
+La descrizione non cambia il funzionamento della rete, ma è molto utile per leggere più facilmente la configurazione.
+
+`switchport mode access`
+
+Imposta la porta in modalità access.
+
+Questo significa che la porta sarà usata per collegare un dispositivo finale e apparterrà a una sola VLAN.
+
+`switchport access vlan 10`
+
+Assegna la porta alla VLAN 10.
+
+Tutto il traffico che entra da PC1 verrà associato alla VLAN 10.
+
+`no shutdown`
+
+Abilita l’interfaccia.
+
+Anche se molte porte degli switch sono già attive di default, usare `no shutdown` è una buona abitudine nei lab Cisco.
+
+<Note> Il PC collegato a una porta access non deve conoscere il numero della VLAN. Il tagging VLAN viene gestito dallo switch, non dal PC.</Note>
+
+</StepCard>
+
+<StepCard label="H" title="Configurazione porta per PC2 - VLAN 20">
+
+Ora configuriamo la porta `FastEthernet0/2`, dove sarà collegato PC2.
+
+<Terminal code="
+Switch(config)# interface fastEthernet 0/2
+Switch(config-if)# description PC2_DOCENTI
+Switch(config-if)# switchport mode access
+Switch(config-if)# switchport access vlan 20
+Switch(config-if)# no shutdown
+Switch(config-if)# exit 
+"/>
+
+Questa configurazione assegna PC2 alla VLAN 20.
+
+PC2 dovrà quindi usare un indirizzo IP appartenente alla rete `192.168.20.0/24`.
+
+Nel nostro piano di indirizzamento, PC2 avrà:
+
+<Terminal code="
+IP address:      192.168.20.10
+Subnet mask:     255.255.255.0
+Default gateway: 192.168.20.1 
+"/>
+
+Il default gateway sarà configurato successivamente sul router.
+
+</StepCard>
+
+<StepCard label="I" title="Configurazione porta per SRV1 - VLAN 30">
+
+Ora configuriamo la porta `FastEthernet0/3`, dove sarà collegato il server.
+
+<Terminal code="Switch(config)# interface fastEthernet 0/3
+Switch(config-if)# description SRV1_SERVER
+Switch(config-if)# switchport mode access
+Switch(config-if)# switchport access vlan 30
+Switch(config-if)# no shutdown
+Switch(config-if)# exit" />
+
+Questa configurazione assegna il server alla VLAN 30.
+
+Il server userà la rete `192.168.30.0/24`.
+
+Nel nostro lab, SRV1 avrà:
+
+<Terminal code="IP address:      192.168.30.10
+Subnet mask:     255.255.255.0
+Default gateway: 192.168.30.1" />
+
+<Info>
+Separare i server in una VLAN dedicata è una pratica molto comune. In questo modo puoi applicare regole di sicurezza più precise, controllare meglio il traffico e ridurre l’esposizione dei servizi interni.
+</Info>
+
+</StepCard>
+
+<StepCard label="J" title="Verifica delle porte assegnate alle VLAN">
+
+Dopo aver assegnato le porte, verifichiamo nuovamente la configurazione VLAN.
+
+<Terminal code="Switch# show vlan brief" />
+
+Output atteso:
+
+<Terminal code="VLAN Name                             Status    Ports
+
+---
+
+1    default                          active
+10   STUDENTI                         active    Fa0/1
+20   DOCENTI                          active    Fa0/2
+30   SERVER                           active    Fa0/3" />
+
+Ora possiamo vedere che:
+
+<ul className="list-disc pl-6 space-y-1 mb-4">
+    <li>`Fa0/1` appartiene alla VLAN 10;</li>
+    <li>`Fa0/2` appartiene alla VLAN 20;</li>
+    <li>`Fa0/3` appartiene alla VLAN 30.</li>
+</ul>
+
+Se una porta non compare nella VLAN corretta, possiamo controllare la configurazione specifica dell’interfaccia.
+
+<Terminal code="Switch# show running-config interface fastEthernet 0/1" />
+
+Esempio di output corretto:
+
+<Terminal code="interface FastEthernet0/1
+ description PC1_STUDENTI
+ switchport mode access
+ switchport access vlan 10" />
+
+<Warning>
+Se una porta è assegnata alla VLAN sbagliata, il dispositivo collegato potrebbe non raggiungere il proprio gateway o potrebbe trovarsi logicamente nella rete sbagliata.
+</Warning>
+
+</StepCard>
+
+<StepCard label="K" title="Configurazione del trunk verso il router">
+
+A questo punto abbiamo creato le VLAN e assegnato le porte access.
+
+Ora dobbiamo configurare il collegamento tra switch e router.
+
+Questo collegamento deve trasportare il traffico di più VLAN, quindi non può essere una semplice porta access. Deve essere configurato come **trunk**.
+
+Nel nostro scenario useremo la porta `GigabitEthernet0/1` dello switch come collegamento verso il router.
+
+<Terminal code="Switch(config)# interface gigabitEthernet 0/1
+Switch(config-if)# description TRUNK_VERSO_R1
+Switch(config-if)# switchport mode trunk
+Switch(config-if)# switchport trunk allowed vlan 10,20,30
+Switch(config-if)# no shutdown
+Switch(config-if)# exit" />
+
+Spiegazione dei comandi:
+
+`interface gigabitEthernet 0/1`
+
+Entra nella configurazione della porta collegata al router.
+
+`description TRUNK_VERSO_R1`
+
+Aggiunge una descrizione alla porta.
+
+In una rete reale, descrivere i collegamenti trunk è molto importante, perché questi collegamenti spesso connettono apparati centrali della rete.
+
+`switchport mode trunk`
+
+Forza la porta in modalità trunk.
+
+Una porta trunk può trasportare traffico appartenente a più VLAN.
+
+`switchport trunk allowed vlan 10,20,30`
+
+Permette sul trunk solo le VLAN 10, 20 e 30.
+
+Questo è importante perché evita di trasportare VLAN non necessarie sul collegamento.
+
+`no shutdown`
+
+Abilita fisicamente e logicamente la porta.
+
+<Info>
+Il trunk usa il tagging 802.1Q per distinguere a quale VLAN appartiene ogni frame che attraversa il collegamento.
+</Info>
+
+</StepCard>
+
+<StepCard label="L" title="Verifica del trunk">
+
+Per verificare che il trunk sia attivo, usiamo il comando:
+
+<Terminal code="Switch# show interfaces trunk" />
+
+Output atteso:
+
+<Terminal code="Port        Mode         Encapsulation  Status        Native vlan
+Gi0/1       on           802.1q         trunking      1
+
+Port        Vlans allowed on trunk
+Gi0/1       10,20,30" />
+
+Questo comando permette di controllare:
+
+<ul className="list-disc pl-6 space-y-1 mb-4">
+    <li>quali porte sono configurate come trunk;</li>
+    <li>se il trunk è operativo;</li>
+    <li>quale incapsulamento viene usato;</li>
+    <li>quali VLAN sono consentite sul trunk;</li>
+    <li>qual è la native VLAN.</li>
+</ul>
+
+<Warning>
+Se la porta trunk non compare nell’output, il routing inter-VLAN non funzionerà. In quel caso controlla che la porta corretta sia collegata al router e che sia configurata con `switchport mode trunk`.
+</Warning>
+
+</StepCard>
+
+<StepCard label="M" title="Configurazione del router - Router-on-a-Stick">
+
+Ora passiamo alla configurazione del router.
+
+Il metodo che useremo si chiama **Router-on-a-Stick**.
+
+Questo metodo prevede l’utilizzo di una sola interfaccia fisica del router, divisa logicamente in più subinterfacce.
+
+Ogni subinterfaccia sarà associata a una VLAN specifica.
+
+Nel nostro scenario useremo:
+
+<div className="table-container">
+    <table className='my-custom-table'>
+        <thead>
+            <tr>
+                <th>Subinterfaccia</th>
+                <th>VLAN</th>
+                <th>Indirizzo IP</th>
+                <th>Funzione</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>G0/0.10</td>
+                <td>10</td>
+                <td>192.168.10.1/24</td>
+                <td>Gateway VLAN 10</td>
+            </tr>
+            <tr>
+                <td>G0/0.20</td>
+                <td>20</td>
+                <td>192.168.20.1/24</td>
+                <td>Gateway VLAN 20</td>
+            </tr>
+            <tr>
+                <td>G0/0.30</td>
+                <td>30</td>
+                <td>192.168.30.1/24</td>
+                <td>Gateway VLAN 30</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+Ogni indirizzo IP configurato sulle subinterfacce sarà il default gateway dei dispositivi appartenenti alla VLAN corrispondente.
+
+</StepCard>
+
+<StepCard label="N" title="Attivazione dell’interfaccia fisica del router">
+
+Per prima cosa abilitiamo l’interfaccia fisica del router collegata allo switch.
+
+In questo esempio useremo `GigabitEthernet0/0`.
+
+<Terminal code="Router# enable
+Router# configure terminal
+Router(config)# interface gigabitEthernet 0/0
+Router(config-if)# description LINK_TRUNK_VERSO_SW1
+Router(config-if)# no shutdown
+Router(config-if)# exit" />
+
+Spiegazione dei comandi:
+
+`interface gigabitEthernet 0/0`
+
+Entra nella configurazione dell’interfaccia fisica collegata allo switch.
+
+`description LINK_TRUNK_VERSO_SW1`
+
+Aggiunge una descrizione al collegamento.
+
+`no shutdown`
+
+Abilita l’interfaccia fisica.
+
+<Note>
+Nel Router-on-a-Stick l’indirizzo IP non viene configurato direttamente sull’interfaccia fisica principale, ma sulle subinterfacce.
+</Note>
+
+</StepCard>
+
+<StepCard label="O" title="Configurazione subinterfaccia per VLAN 10">
+
+Ora creiamo la subinterfaccia dedicata alla VLAN 10.
+
+<Terminal code="Router(config)# interface gigabitEthernet 0/0.10
+Router(config-subif)# description GATEWAY_VLAN10_STUDENTI
+Router(config-subif)# encapsulation dot1Q 10
+Router(config-subif)# ip address 192.168.10.1 255.255.255.0
+Router(config-subif)# exit" />
+
+Spiegazione dei comandi:
+
+`interface gigabitEthernet 0/0.10`
+
+Crea la subinterfaccia `G0/0.10`.
+
+Il numero dopo il punto non è obbligatorio che coincida con il numero della VLAN, ma è una best practice usare lo stesso numero per rendere la configurazione più leggibile.
+
+`description GATEWAY_VLAN10_STUDENTI`
+
+Descrive il ruolo della subinterfaccia.
+
+`encapsulation dot1Q 10`
+
+Associa questa subinterfaccia alla VLAN 10 usando l’incapsulamento 802.1Q.
+
+Questo comando dice al router:
+
+“Quando ricevi traffico taggato VLAN 10, gestiscilo tramite questa subinterfaccia.”
+
+`ip address 192.168.10.1 255.255.255.0`
+
+Assegna l’indirizzo IP alla subinterfaccia.
+
+Questo sarà il default gateway di PC1 e di tutti i dispositivi nella VLAN 10.
+
+</StepCard>
+
+<StepCard label="P" title="Configurazione subinterfaccia per VLAN 20">
+
+Configuriamo ora la subinterfaccia per la VLAN 20.
+
+<Terminal code="Router(config)# interface gigabitEthernet 0/0.20
+Router(config-subif)# description GATEWAY_VLAN20_DOCENTI
+Router(config-subif)# encapsulation dot1Q 20
+Router(config-subif)# ip address 192.168.20.1 255.255.255.0
+Router(config-subif)# exit" />
+
+Questa subinterfaccia sarà il gateway della VLAN 20.
+
+I dispositivi nella VLAN 20 useranno come gateway:
+
+<Terminal code="192.168.20.1" />
+
+<Info>
+Ogni VLAN deve avere un gateway appartenente alla stessa rete IP dei dispositivi collegati a quella VLAN.
+</Info>
+
+</StepCard>
+
+<StepCard label="Q" title="Configurazione subinterfaccia per VLAN 30">
+
+Configuriamo infine la subinterfaccia per la VLAN 30.
+
+<Terminal code="Router(config)# interface gigabitEthernet 0/0.30
+Router(config-subif)# description GATEWAY_VLAN30_SERVER
+Router(config-subif)# encapsulation dot1Q 30
+Router(config-subif)# ip address 192.168.30.1 255.255.255.0
+Router(config-subif)# exit" />
+
+Questa subinterfaccia sarà il gateway della VLAN 30.
+
+Il server SRV1 userà come gateway:
+
+<Terminal code="192.168.30.1" />
+
+<Warning>
+Il numero indicato nel comando `encapsulation dot1Q` deve corrispondere alla VLAN corretta. Se configuri `encapsulation dot1Q 20` sulla subinterfaccia della VLAN 30, quella VLAN non funzionerà correttamente.
+</Warning>
+
+</StepCard>
+
+<StepCard label="R" title="Verifica delle interfacce del router">
+
+Dopo aver configurato le subinterfacce, verifichiamo lo stato delle interfacce.
+
+<Terminal code="Router# show ip interface brief" />
+
+Output atteso:
+
+<Terminal code="Interface              IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/0     unassigned      YES unset  up                    up
+GigabitEthernet0/0.10  192.168.10.1    YES manual up                    up
+GigabitEthernet0/0.20  192.168.20.1    YES manual up                    up
+GigabitEthernet0/0.30  192.168.30.1    YES manual up                    up" />
+
+Dobbiamo controllare che:
+
+<ul className="list-disc pl-6 space-y-1 mb-4">
+    <li>l’interfaccia fisica `GigabitEthernet0/0` sia `up/up`;</li>
+    <li>le subinterfacce siano `up/up`;</li>
+    <li>gli indirizzi IP siano corretti;</li>
+    <li>ogni VLAN abbia il proprio gateway.</li>
+</ul>
+
+Se l’interfaccia fisica è `administratively down`, significa che manca il comando:
+
+<Terminal code="Router(config-if)# no shutdown" />
+
+</StepCard>
+
+<StepCard label="S" title="Verifica della tabella di routing">
+
+Ora controlliamo la tabella di routing del router.
+
+<Terminal code="Router# show ip route" />
+
+Output atteso:
+
+<Terminal code="C    192.168.10.0/24 is directly connected, GigabitEthernet0/0.10
+L    192.168.10.1/32 is directly connected, GigabitEthernet0/0.10
+C    192.168.20.0/24 is directly connected, GigabitEthernet0/0.20
+L    192.168.20.1/32 is directly connected, GigabitEthernet0/0.20
+C    192.168.30.0/24 is directly connected, GigabitEthernet0/0.30
+L    192.168.30.1/32 is directly connected, GigabitEthernet0/0.30" />
+
+Le rotte con la lettera `C` indicano reti direttamente connesse.
+
+Le rotte con la lettera `L` indicano gli indirizzi locali configurati sulle interfacce del router.
+
+Se le reti delle VLAN compaiono nella tabella di routing, il router sa come raggiungere quelle subnet.
+
+<Info>
+Il routing inter-VLAN funziona perché il router ha un’interfaccia logica in ogni VLAN. In questo modo può ricevere traffico da una VLAN e inoltrarlo verso un’altra.
+</Info>
+
+</StepCard>
+
+<StepCard label="T" title="Configurazione IP dei dispositivi finali">
+
+Ora configuriamo gli indirizzi IP sui dispositivi finali.
+
+PC1, collegato alla VLAN 10, dovrà avere:
+
+<Terminal code="IP address:      192.168.10.10
+Subnet mask:     255.255.255.0
+Default gateway: 192.168.10.1" />
+
+PC2, collegato alla VLAN 20, dovrà avere:
+
+<Terminal code="IP address:      192.168.20.10
+Subnet mask:     255.255.255.0
+Default gateway: 192.168.20.1" />
+
+SRV1, collegato alla VLAN 30, dovrà avere:
+
+<Terminal code="IP address:      192.168.30.10
+Subnet mask:     255.255.255.0
+Default gateway: 192.168.30.1" />
+
+<Warning>
+Il default gateway deve appartenere alla stessa rete IP del dispositivo. Un PC con IP `192.168.10.10/24` non può usare come gateway `192.168.20.1`.
+</Warning>
+
+</StepCard>
+
+<StepCard label="U" title="Test di connettività">
+
+Ora possiamo testare la comunicazione tra i dispositivi.
+
+Dal PC1 proviamo prima a raggiungere il proprio gateway:
+
+<Terminal code="PC1> ping 192.168.10.1" />
+
+Se il ping funziona, PC1 comunica correttamente con il router nella VLAN 10.
+
+Ora proviamo a raggiungere PC2 nella VLAN 20:
+
+<Terminal code="PC1> ping 192.168.20.10" />
+
+Se il ping funziona, il routing inter-VLAN tra VLAN 10 e VLAN 20 è operativo.
+
+Ora testiamo la comunicazione verso il server nella VLAN 30:
+
+<Terminal code="PC1> ping 192.168.30.10" />
+
+Infine, da PC2 proviamo a raggiungere il server:
+
+<Terminal code="PC2> ping 192.168.30.10" />
+
+Se tutti i ping funzionano, la configurazione VLAN e il routing inter-VLAN sono corretti.
+
+</StepCard>
+
+<StepCard label="V" title="Percorso del traffico tra VLAN">
+
+Quando PC1 nella VLAN 10 prova a comunicare con SRV1 nella VLAN 30, il traffico segue questo percorso logico:
+
+<Diagram code="flowchart TD; A[PC1 - VLAN 10] --> B[Fa0/1 - Porta access VLAN 10]; B --> C[Switch SW1]; C --> D[Trunk 802.1Q]; D --> E[Router R1 - G0/0.10]; E --> F[Routing Inter-VLAN]; F --> G[Router R1 - G0/0.30]; G --> H[Trunk 802.1Q]; H --> I[Switch SW1]; I --> J[Fa0/3 - Porta access VLAN 30]; J --> K[SRV1 - VLAN 30]" />
+
+Il punto fondamentale è capire che lo switch lavora a livello Layer 2, mentre il router lavora a livello Layer 3.
+
+Lo switch separa il traffico nelle VLAN.
+
+Il router permette la comunicazione tra reti IP diverse.
+
+<Note> Senza routing inter-VLAN, PC1 e SRV1 rimarrebbero separati, anche se fisicamente collegati allo stesso switch.</Note>
+
+</StepCard>
+
+<StepCard label="W" title="Comandi utili per il troubleshooting sullo switch">
+
+Durante un lab VLAN, questi sono i comandi principali da usare sullo switch.
+
+<Terminal code="Switch# show vlan brief" />
+
+Serve per verificare VLAN e porte access.
+
+<Terminal code="Switch# show interfaces trunk" />
+
+Serve per verificare lo stato dei trunk e le VLAN consentite.
+
+<Terminal code="Switch# show running-config" />
+
+Mostra tutta la configurazione attiva dello switch.
+
+<Terminal code="Switch# show running-config interface fastEthernet 0/1" />
+
+Mostra solo la configurazione della porta `FastEthernet0/1`.
+
+<Terminal code="Switch# show running-config interface gigabitEthernet 0/1" />
+
+Mostra solo la configurazione della porta trunk verso il router.
+
+<Terminal code="Switch# show mac address-table" />
+
+Mostra la tabella MAC dello switch.
+
+Questo comando è utile per capire se lo switch sta imparando correttamente gli indirizzi MAC dei dispositivi collegati.
+
+</StepCard>
+
+<StepCard label="X" title="Comandi utili per il troubleshooting sul router">
+
+Sul router, i comandi principali sono questi:
+
+<Terminal code="Router# show ip interface brief" />
+
+Serve per controllare rapidamente indirizzi IP e stato delle interfacce.
+
+<Terminal code="Router# show running-config" />
+
+Mostra la configurazione attiva del router.
+
+<Terminal code="Router# show running-config interface gigabitEthernet 0/0.10" />
+
+Mostra la configurazione della subinterfaccia associata alla VLAN 10.
+
+<Terminal code="Router# show ip route" />
+
+Mostra la tabella di routing.
+
+<Terminal code="Router# show arp" />
+
+Mostra la tabella ARP del router.
+
+La tabella ARP permette di verificare se il router sta risolvendo gli indirizzi IP degli host nelle varie VLAN.
+
+</StepCard>
+
+<StepCard label="Y" title="Errori comuni e soluzioni">
+
+Vediamo ora alcuni errori molto frequenti nei lab VLAN.
+
+## VLAN non creata
+
+Sintomo:
+
+Il PC non riesce a comunicare con il gateway.
+
+Controllo:
+
+<Terminal code="Switch# show vlan brief" />
+
+Se la VLAN non esiste, crearla:
+
+<Terminal code="Switch# configure terminal
+Switch(config)# vlan 10
+Switch(config-vlan)# name STUDENTI
+Switch(config-vlan)# exit" />
+
+## Porta nella VLAN sbagliata
+
+Sintomo:
+
+PC1 ha un IP corretto, ma non raggiunge il gateway.
+
+Controllo:
+
+<Terminal code="Switch# show vlan brief" />
+
+Correzione:
+
+<Terminal code="Switch# configure terminal
+Switch(config)# interface fastEthernet 0/1
+Switch(config-if)# switchport mode access
+Switch(config-if)# switchport access vlan 10
+Switch(config-if)# exit" />
+
+## Trunk non configurato
+
+Sintomo:
+
+Le VLAN esistono, ma il routing inter-VLAN non funziona.
+
+Controllo:
+
+<Terminal code="Switch# show interfaces trunk" />
+
+Correzione:
+
+<Terminal code="Switch# configure terminal
+Switch(config)# interface gigabitEthernet 0/1
+Switch(config-if)# switchport mode trunk
+Switch(config-if)# switchport trunk allowed vlan 10,20,30
+Switch(config-if)# no shutdown
+Switch(config-if)# exit" />
+
+## VLAN non consentita sul trunk
+
+Sintomo:
+
+Una VLAN funziona, ma un’altra no.
+
+Controllo:
+
+<Terminal code="Switch# show interfaces trunk" />
+
+Correzione:
+
+<Terminal code="Switch(config)# interface gigabitEthernet 0/1
+Switch(config-if)# switchport trunk allowed vlan 10,20,30" />
+
+Oppure, per aggiungere una VLAN senza riscrivere tutta la lista:
+
+<Terminal code="Switch(config-if)# switchport trunk allowed vlan add 30" />
+
+## Encapsulation dot1Q errata
+
+Sintomo:
+
+Una specifica VLAN non riesce a comunicare con il router.
+
+Controllo:
+
+<Terminal code="Router# show running-config interface gigabitEthernet 0/0.30" />
+
+Correzione:
+
+<Terminal code="Router(config)# interface gigabitEthernet 0/0.30
+Router(config-subif)# encapsulation dot1Q 30
+Router(config-subif)# ip address 192.168.30.1 255.255.255.0" />
+
+## Gateway errato sul PC
+
+Sintomo:
+
+Il PC comunica solo nella propria VLAN, ma non raggiunge le altre reti.
+
+Esempio errato:
+
+<Terminal code="IP address:      192.168.10.10
+Subnet mask:     255.255.255.0
+Default gateway: 192.168.20.1" />
+
+Esempio corretto:
+
+<Terminal code="IP address:      192.168.10.10
+Subnet mask:     255.255.255.0
+Default gateway: 192.168.10.1" />
+
+<Warning>
+Il gateway deve sempre appartenere alla stessa subnet del dispositivo.
+</Warning>
+
+</StepCard>
+
+<StepCard label="Z" title="Configurazione completa dello switch">
+
+Questa è la configurazione completa dello switch SW1.
+
+<Terminal code="enable
+configure terminal
+
+vlan 10
+name STUDENTI
+exit
+
+vlan 20
+name DOCENTI
+exit
+
+vlan 30
+name SERVER
+exit
+
+interface fastEthernet 0/1
+description PC1_STUDENTI
+switchport mode access
+switchport access vlan 10
+no shutdown
+exit
+
+interface fastEthernet 0/2
+description PC2_DOCENTI
+switchport mode access
+switchport access vlan 20
+no shutdown
+exit
+
+interface fastEthernet 0/3
+description SRV1_SERVER
+switchport mode access
+switchport access vlan 30
+no shutdown
+exit
+
+interface gigabitEthernet 0/1
+description TRUNK_VERSO_R1
+switchport mode trunk
+switchport trunk allowed vlan 10,20,30
+no shutdown
+exit
+
+end
+write memory" />
+
+Il comando `write memory` salva la configurazione attiva nella memoria di avvio.
+
+In alternativa puoi usare:
+
+<Terminal code="copy running-config startup-config" />
+
+</StepCard>
+
+<StepCard label="AA" title="Configurazione completa del router">
+
+Questa è la configurazione completa del router R1.
+
+<Terminal code="enable
+configure terminal
+
+interface gigabitEthernet 0/0
+description LINK_TRUNK_VERSO_SW1
+no shutdown
+exit
+
+interface gigabitEthernet 0/0.10
+description GATEWAY_VLAN10_STUDENTI
+encapsulation dot1Q 10
+ip address 192.168.10.1 255.255.255.0
+exit
+
+interface gigabitEthernet 0/0.20
+description GATEWAY_VLAN20_DOCENTI
+encapsulation dot1Q 20
+ip address 192.168.20.1 255.255.255.0
+exit
+
+interface gigabitEthernet 0/0.30
+description GATEWAY_VLAN30_SERVER
+encapsulation dot1Q 30
+ip address 192.168.30.1 255.255.255.0
+exit
+
+end
+write memory" />
+
+</StepCard>
+
+<StepCard label="AB" title="Alternativa con switch Layer 3">
+
+Il metodo Router-on-a-Stick è molto utile per imparare, ma in reti più grandi può diventare un limite.
+
+Il motivo è semplice: tutto il traffico tra VLAN deve passare attraverso una singola interfaccia fisica del router.
+
+Una soluzione più scalabile è usare uno switch Layer 3.
+
+In questo caso, il routing tra VLAN viene fatto direttamente dallo switch tramite interfacce virtuali chiamate **SVI**, cioè **Switch Virtual Interface**.
+
+Esempio:
+
+<Terminal code="Switch# configure terminal
+
+vlan 10
+name STUDENTI
+exit
+
+vlan 20
+name DOCENTI
+exit
+
+vlan 30
+name SERVER
+exit
+
+ip routing
+
+interface vlan 10
+description GATEWAY_VLAN10_STUDENTI
+ip address 192.168.10.1 255.255.255.0
+no shutdown
+exit
+
+interface vlan 20
+description GATEWAY_VLAN20_DOCENTI
+ip address 192.168.20.1 255.255.255.0
+no shutdown
+exit
+
+interface vlan 30
+description GATEWAY_VLAN30_SERVER
+ip address 192.168.30.1 255.255.255.0
+no shutdown
+exit" />
+
+Spiegazione dei comandi principali:
+
+`ip routing`
+
+Abilita il routing Layer 3 sullo switch.
+
+Senza questo comando, lo switch può avere interfacce VLAN configurate, ma non instraderà traffico tra VLAN diverse.
+
+`interface vlan 10`
+
+Crea o entra nell’interfaccia virtuale della VLAN 10.
+
+Questa interfaccia funziona come gateway per i dispositivi della VLAN 10.
+
+<Info>
+Con uno switch Layer 3, il router esterno non è necessario per il routing tra VLAN interne. Il router servirà eventualmente per uscire verso Internet o verso altre reti.
+</Info>
+
+</StepCard>
+
+<StepCard label="AC" title="Conclusione del lab">
+
+In questo lab abbiamo configurato una rete composta da più VLAN e abbiamo abilitato il routing inter-VLAN.
+
+Abbiamo visto che le VLAN permettono di separare logicamente una rete Layer 2, mentre il routing inter-VLAN permette la comunicazione tra reti IP diverse.
+
+Abbiamo configurato:
+
+<ul className="list-disc pl-6 space-y-1 mb-4">
+    <li>la VLAN 10 per il reparto STUDENTI;</li>
+    <li>la VLAN 20 per il reparto DOCENTI;</li>
+    <li>la VLAN 30 per il reparto SERVER;</li>
+    <li>le porte access per PC e server;</li>
+    <li>un trunk 802.1Q tra switch e router;</li>
+    <li>le subinterfacce del router;</li>
+    <li>il routing inter-VLAN tramite Router-on-a-Stick;</li>
+    <li>i principali comandi di verifica e troubleshooting.</li>
+</ul>
+
+Il concetto più importante da portare a casa è questo:
+
+<Info>
+Una VLAN separa il traffico a livello Layer 2. Per far comunicare VLAN diverse serve un dispositivo Layer 3, come un router o uno switch multilayer.
+</Info>
+
+Quando fai troubleshooting, non partire mai a caso.
+
+Segui sempre un ordine logico:
+
+<ul className="list-disc pl-6 space-y-1 mb-4">
+    <li>controlla l’indirizzo IP del dispositivo;</li>
+    <li>controlla il default gateway;</li>
+    <li>controlla la VLAN della porta access;</li>
+    <li>controlla che la VLAN esista;</li>
+    <li>controlla il trunk;</li>
+    <li>controlla le subinterfacce del router;</li>
+    <li>controlla la tabella di routing.</li>
+</ul>
+
+Capire questo flusso ti permette di ragionare come un vero network engineer, non solo di copiare comandi.
+
+</StepCard>
+
+

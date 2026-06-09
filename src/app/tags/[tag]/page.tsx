@@ -53,7 +53,7 @@ export default async function TagPage({ params }: { params: Promise<{ tag: strin
                                 className="group border border-zinc-800 bg-zinc-900/30 rounded-xl hover:border-emerald-500/50 transition-all flex flex-col overflow-hidden">
                                 {/* Contenitore immagine con overflow-hidden per bloccare lo zoom */}
                                 {article.coverImage && (
-                                    <div className="w-full h-40 overflow-hidden">
+                                    <div className="w-full h-45 overflow-hidden">
                                         <img
                                             src={article.coverImage}
                                             alt={article.title}

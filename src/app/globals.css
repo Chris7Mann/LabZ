@@ -1,33 +1,38 @@
 @import "tailwindcss";
 
-
-
 :root {
   --color-accent: #10b981;
+  --color-accent-alt: #00bc7d;
+  --color-bg: #1b1818;
+  --color-text: #d4d4d8;
+  --color-heading: #ffffff;
+  --color-border: #3f3f46;
+  --color-code-bg: #27272a;
+  --color-terminal-bg: #26262636;
+  --color-terminal-border: #292929;
 }
 
 @layer base {
   body {
-    background-color: #1b1818;
-    color: #d4d4d8;
     min-height: 100vh;
+    background-color: var(--color-bg);
+    color: var(--color-text);
     border-top: 4px solid var(--color-accent);
   }
 }
 
-/* Stile del contenitore principale della card */
+/*********************** style per i labs ************************/
+
 .step-card-container {
   position: relative;
-  margin-top: 2.5rem;
-  margin-bottom: 2.5rem;
+  margin: 2.5rem 0;
   padding-bottom: 2.5rem;
   padding-left: 5rem;
-  /* Spazio per il pallino e la linea */
 }
 
 /* La linea verticale che unisce i passaggi */
 .step-card-container::before {
-  content: '';
+  content: "";
   position: absolute;
   left: 1.2rem;
   top: 2.5rem;
@@ -37,9 +42,8 @@
 }
 
 .step-card-note {
-  color: #ffffff;
-
-  border: 1px solid #00bc7d;
+  color: var(--color-heading);
+  border: 1px solid var(--color-accent-alt);
   border-radius: 8px;
 }
 
@@ -51,7 +55,7 @@
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 50%;
-  background-color: #00bc7d;
+  background-color: var(--color-accent-alt);
   color: #09090b;
   display: flex;
   align-items: center;
@@ -62,122 +66,127 @@
 
 /* Il terminale */
 .terminal-block {
-  background-color: #26262636 !important;
-  border: 1px solid #292929;
+  background-color: var(--color-terminal-bg) !important;
+  border: 1px solid var(--color-terminal-border);
+  border-left: 4px solid var(--color-accent);
   border-radius: 8px;
-  border-left: 4px solid #10b981;
   padding: 1.5rem;
-  font-family: 'Courier New', Courier, monospace;
+  font-family: "Courier New", Courier, monospace;
   color: #f8fafc;
 }
 
 /* Commenti grigi nel terminale */
 .terminal-block .token.comment {
   color: #64748b !important;
-  /* Grigio chiaro */
   font-style: italic;
 }
 
-/*********************** style per gli articoli ************************/
+.text-container{
+  position: relative;
+  margin: 5rem 0 1.5rem 0;
+  padding-bottom: 2.5rem;
+  padding-left: 5rem;
+}
 
+@media (max-width: 640px) {
+  .text-container {
+    padding-left: 0;
+  }
+}
+
+
+
+/*********************** contenuto labs e articoli ************************/
+
+.labs-content,
 .article-content {
   max-width: 800px;
   margin: 0 auto;
-  color: #d4d4d8; /* Zinc-300 */
+  color: var(--color-text);
   line-height: 1.75;
 }
 
+.labs-content h2,
 .article-content h2 {
-  font-size: 1.875rem; /* 3xl */
+  font-size: 1.875rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-heading);
   margin-top: 2.5rem;
   margin-bottom: 1.25rem;
-  border-left: 4px solid #10b981; /* Bordo verde */
+  border-left: 4px solid var(--color-accent);
   padding-left: 1rem;
 }
 
+.labs-content h3,
 .article-content h3 {
-  font-size: 1.5rem; /* 2xl */
+  font-size: 1.5rem;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--color-heading);
   margin-top: 2rem;
   margin-bottom: 1rem;
 }
 
+.labs-content p,
 .article-content p {
-  margin-bottom: 1.5rem;
   margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
 }
 
+.labs-content code,
 .article-content code {
-  background-color: #27272a;
-  color: #10b981;
+  background-color: var(--color-code-bg);
+  color: var(--color-accent);
   padding: 0.2rem 0.4rem;
   border-radius: 0.25rem;
   font-family: monospace;
   font-size: 0.95rem;
 }
 
+.labs-content img,
 .article-content img {
-  max-width: 100%;     
-  width: 400px;         
-  height: auto;        
+  max-width: 100%;
+  height: auto;
   margin: 2rem auto;
   display: block;
 }
 
-/* Regola per lo smartphone */
+/* Differenza specifica: immagini articoli più strette su desktop */
+.article-content img {
+  width: 400px;
+}
+
+/* Regola per smartphone */
 @media (max-width: 640px) {
+  .labs-content img,
   .article-content img {
-    width: 100%;        
+    width: 100%;
   }
 }
 
 /************************* Styling per le tabelle *************************/
 
-.my-custom-table {
-  width: 100% !important;
-  border-collapse: collapse !important;
-  margin: 2rem 0 !important;
-  border: 1px solid #3f3f46 !important;
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  margin: 2rem 0;
 }
 
-.my-custom-table th, 
+.my-custom-table {
+  width: 100% !important;
+  min-width: 500px;
+  border-collapse: collapse !important;
+  border: 1px solid var(--color-border) !important;
+}
+
+.my-custom-table th,
 .my-custom-table td {
   padding: 12px 16px !important;
-  border: 1px solid #3f3f46 !important;
+  border: 1px solid var(--color-border) !important;
   color: #e4e4e7 !important;
+  white-space: nowrap;
 }
 
 .my-custom-table th {
   background-color: #18181b !important;
   font-weight: bold !important;
-}
-
-/* Container per evitare che la tabella rompa il layout su smartphone */
-.table-container {
-    width: 100%;
-    overflow-x: auto; /* Aggiunge lo scroll orizzontale se necessario */
-    margin: 2rem 0;
-}
-
-.my-custom-table {
-    width: 100% !important;
-    border-collapse: collapse !important;
-    border: 1px solid #3f3f46 !important;
-    min-width: 500px; /* Impedisce alla tabella di schiacciarsi troppo */
-}
-
-.my-custom-table th, 
-.my-custom-table td {
-    padding: 12px 16px !important;
-    border: 1px solid #3f3f46 !important;
-    color: #e4e4e7 !important;
-    white-space: nowrap; /* Mantiene il testo su una riga */
-}
-
-.my-custom-table th {
-    background-color: #18181b !important;
-    font-weight: bold !important;
 }

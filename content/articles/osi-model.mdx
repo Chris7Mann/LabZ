@@ -29,42 +29,42 @@ Definito dall'ISO nel 1984, il modello OSI non è un protocollo, ma un modello d
 
 
 
-### I 7 Livelli nel Dettaglio
+## I 7 Livelli nel Dettaglio
 
 Possiamo dividere il modello in due macro-aree: i livelli superiori (orientati all'applicazione) e i livelli inferiori (orientati al trasporto).
 
-#### Livelli Superiori (Host)
+### Livelli Superiori (Host)
 
-* **7. Livello Applicazione:** Il punto di contatto con l'utente. Qui lavorano protocolli come HTTP, FTP, SMTP. È il protocollo che permette al browser di "parlare".
-* **6. Livello Presentazione:** Il "traduttore" del modello. Si occupa della sintassi, crittografia (SSL/TLS) e codifica dei dati (ASCII/JPEG).
-* **5. Livello Sessione:** Gestisce, mantiene e chiude le sessioni tra due endpoint. Garantisce che una conversazione (es. una videochiamata) non si interrompa.
+* **7. `Livello Applicazione`:** Il punto di contatto con l'utente. Qui lavorano protocolli come HTTP, FTP, SMTP. È il protocollo che permette al browser di "parlare".
+* **6. `Livello Presentazione`:** Il "traduttore" del modello. Si occupa della sintassi, crittografia (SSL/TLS) e codifica dei dati (ASCII/JPEG).
+* **5. `Livello Sessione`:** Gestisce, mantiene e chiude le sessioni tra due endpoint. Garantisce che una conversazione (es. una videochiamata) non si interrompa.
 
-#### Livelli Inferiori (Media)
+### Livelli Inferiori (Media)
 
-* **4. Livello Trasporto:** Il cuore dell'affidabilità. Qui troviamo **TCP** (connessione garantita) e **UDP** (velocità pura). I dati vengono qui divisi in segmenti.
-* **3. Livello Rete:** Il regno dell'instradamento (*routing*). Gestisce l'indirizzamento logico (**IP**) e determina il percorso dei pacchetti.
-* **2. Livello Data Link:** Gestisce il trasferimento fisico tra due nodi collegati. Utilizza gli indirizzi fisici (**MAC Address**) e rileva errori a livello di frame (Ethernet, Wi-Fi).
-* **1. Livello Fisico:** Il mezzo fisico (cavi in rame, fibra, onde radio). Trasmette bit grezzi sotto forma di segnali elettrici o impulsi di luce.
-
-
+* **4. `Livello Trasporto`:** Il cuore dell'affidabilità. Qui troviamo **TCP** (connessione garantita) e **UDP** (velocità pura). I dati vengono qui divisi in segmenti.
+* **3. `Livello Rete`:** Il regno dell'instradamento (*routing*). Gestisce l'indirizzamento logico (**IP**) e determina il percorso dei pacchetti.
+* **2. `Livello Data Link`:** Gestisce il trasferimento fisico tra due nodi collegati. Utilizza gli indirizzi fisici (**MAC Address**) e rileva errori a livello di frame (Ethernet, Wi-Fi).
+* **1. `Livello Fisico`:** Il mezzo fisico (cavi in rame, fibra, onde radio). Trasmette bit grezzi sotto forma di segnali elettrici o impulsi di luce.
 
 
 
-### Perché il Modello OSI è fondamentale per te?
-
-La potenza del modello OSI sta nel metodo di risoluzione dei problemi (*troubleshooting*). Un professionista procede sempre in modo strutturato:
-
-1. **La connessione è assente?** Verifica il Layer 1 (cavi, alimentazione).
-2. **Hai ping ma non navighi?** Verifica il Layer 3 (configurazione IP, gateway).
-3. **Navighi ma il sito non carica?** Verifica il Layer 7 (configurazione server web, DNS).
 
 
+## Perché il Modello OSI è fondamentale per te?
 
-### OSI vs. TCP/IP
+La potenza del modello OSI sta nel metodo di risoluzione dei problemi (*`troubleshooting`*). Un professionista procede sempre in modo strutturato:
 
-Sebbene il modello OSI sia lo standard didattico, nel mondo reale utilizziamo il modello **TCP/IP** (solitamente 4 o 5 livelli). La logica sottostante è identica: conoscere il modello OSI ti permette di mappare i protocolli reali in modo professionale, rendendoti in grado di parlare la lingua tecnica corretta in qualsiasi scenario aziendale.
+1. **`La connessione è assente?`** Verifica il Layer 1 (cavi, alimentazione).
+2. **`Hai ping ma non navighi?`** Verifica il Layer 3 (configurazione IP, gateway).
+3. **`Navighi ma il sito non carica?`** Verifica il Layer 7 (configurazione server web, DNS).
 
-### Conclusione
+
+
+## OSI vs. TCP/IP
+
+Sebbene il modello OSI sia lo standard didattico, nel mondo reale utilizziamo il modello **`TCP/IP`** (solitamente 4 o 5 livelli). La logica sottostante è identica: conoscere il modello OSI ti permette di mappare i protocolli reali in modo professionale, rendendoti in grado di parlare la lingua tecnica corretta in qualsiasi scenario aziendale.
+
+## Conclusione
 
 Il modello OSI è la lingua franca del networking. Che tu stia configurando un firewall, analizzando un pacchetto con Wireshark o cablando un ufficio, starai sempre operando su uno di questi sette livelli. Padroneggiarli significa trasformarsi da un semplice utente a un vero architetto di reti.
 
