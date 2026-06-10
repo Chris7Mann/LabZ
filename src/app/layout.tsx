@@ -8,21 +8,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="it">
       <head> 
-        {/* <Script 
-            src="https://embeds.iubenda.com/widgets/b1bf577d-c360-4a68-91da-dc36fa9cfcd2.js" 
-            strategy="afterInteractive" 
-        />
-        <Script src="https://cdn.iubenda.com/iubenda.js" strategy="afterInteractive" />
-        <Script src="https://cdn.iubenda.com/iubenda.js" strategy="afterInteractive" />
-
-        <Script id="iubenda-config" strategy="afterInteractive">
-          {`
-            window.addEventListener('load', function() {
-              const images = document.querySelectorAll('img');
-              images.forEach(img => img.classList.add('iubenda-no-cmp'));
-            });
-          `}</Script> */}
-
           <script type="text/javascript" charSet="UTF-8" src="//cdn.cookie-script.com/s/a4d6726a3edf8c4804ae6fcda03756d4.js"></script>
       </head>
         <body className="bg-zinc-950 text-zinc-300 min-h-screen font-mono p-8 overflow-x-hidden">   

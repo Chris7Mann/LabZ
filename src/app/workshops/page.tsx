@@ -8,6 +8,7 @@ export default function WorkshopsPage() {
   return (
     <main className="min-h-screen bg-black py-20 px-6">
       <div className="max-w-6xl mx-auto">
+        {/* Navigazione interna */}
         <Breadcrumb items={[
           { label: "HOME", href: "/" },
           { label: "NETWORKING", href: "/tags/networking" },

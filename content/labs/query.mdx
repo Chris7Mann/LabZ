@@ -1,0 +1,954 @@
+---
+title: "Procedure su Database Relazionali e Time-Series"
+coverImage: "/images/labsdatabase-query.png"
+date: "10-06-2026"
+author: "ChrisMann"
+tech: Database
+difficulty: "Intermediate"
+excerpt: "Query, stored procedure, database relazionali e time-series."
+tags:
+  - DB
+  - SQL
+  - QUERY
+---
+
+In questo lab viene simulato uno scenario realistico di gestione dati in ambito IT Operations: un sistema raccoglie informazioni su dispositivi, sedi aziendali, asset di rete e metriche temporali come utilizzo CPU, memoria, latenza e stato operativo.
+
+L’obiettivo non è soltanto scrivere query SQL, ma dimostrare capacità operative concrete su database relazionali e time-series: progettazione dello schema, interrogazione dei dati, creazione di procedure, ottimizzazione delle query, uso degli indici, aggregazione temporale e analisi delle performance.
+
+Questo tipo di competenza è utile in contesti come IT Help Desk avanzato, Network Operations Center, sistemistica Linux, cybersecurity monitoring, DevOps, gestione log e metriche, troubleshooting infrastrutturale e data analysis tecnica.
+
+
+
+## Obiettivo del lab
+
+Alla fine di questo laboratorio avrò realizzato un ambiente database capace di gestire dati relazionali su sedi, dispositivi e asset IT, registrare metriche time-series associate ai dispositivi, eseguire query di selezione, filtro, join e aggregazione, creare viste SQL, implementare procedure, ottimizzare query tramite indici e analizzare il piano di esecuzione con `EXPLAIN ANALYZE`.
+
+Inoltre verrà utilizzato **TimescaleDB** per gestire dati storici e metriche temporali, creando aggregazioni orarie utili per dashboard tecniche e attività di monitoraggio.
+
+
+
+## Scenario pratico
+
+Immaginiamo un’infrastruttura aziendale composta da più sedi.
+
+Ogni sede contiene dispositivi di rete e server, come router, switch, firewall, server Linux, host Docker e appliance di monitoraggio.
+
+Ogni dispositivo produce metriche periodiche: **utilizzo CPU**, **utilizzo RAM**, **latenza media**, **pacchetti persi**, **stato operativo** e **timestamp** della rilevazione.
+
+Il database deve consentire sia analisi relazionali, ad esempio sapere quali dispositivi appartengono a una sede, sia analisi time-series, ad esempio verificare qual è stata la latenza media di un firewall nelle ultime 24 ore.
+
+
+
+## Stack utilizzato
+
+In questo lab utilizzo PostgreSQL come database relazionale, TimescaleDB come estensione per dati time-series, SQL per interrogazioni e procedure, Docker Compose per avviare rapidamente l’ambiente e `psql` come client da terminale.
+
+<Info>
+TimescaleDB è un’estensione di PostgreSQL progettata per gestire in modo efficiente dati temporali, metriche, eventi, log e serie storiche.
+</Info>
+
+
+<StepCard label="A" title="Creazione della struttura del progetto">
+Creo una cartella dedicata al laboratorio. All’interno preparo il file `docker-compose.yml`, il file `init.sql` e un eventuale `README.md`.
+
+<Terminal code="
+database-query-timeseries-lab/
+├── docker-compose.yml
+├── init.sql
+└── README.md
+" />
+
+Questa struttura separa la configurazione dell’ambiente dal codice SQL di inizializzazione del database.
+</StepCard>
+
+
+<div className="[&_h2]:!mt-20 [&_h2]:!ml-4 [&_h2]:!bg-[#191919] [&_h2]:!p-4 [&_h2]:border-l-4 [&_h2]:border-emerald-500 [&_h2]:text-emerald-300">
+## Avvio ambiente con Docker Compose
+
+<StepCard label="B" title="Creazione del file docker-compose.yml">
+Creo un container PostgreSQL con TimescaleDB già disponibile. In questo modo posso simulare un ambiente database completo senza installare manualmente PostgreSQL sul sistema operativo.
+
+<Terminal code="
+version: '3.8'
+
+services:
+  db:
+    image: timescale/timescaledb:latest-pg16
+    container_name: timeseries-postgres-lab
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: infra_monitoring
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: adminpassword
+    ports:
+      - '5432:5432'
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+" />
+
+Questo file crea un database chiamato `infra_monitoring`, con utente `admin` e password `adminpassword`.
+
+<Warning>
+Le credenziali usate in questo lab sono solo dimostrative. In un ambiente reale non bisogna mai salvare password sensibili direttamente nel file `docker-compose.yml`.
+</Warning>
+</StepCard>
+
+
+<StepCard label="C" title="Avvio del database">
+Avvio il container in modalità detached.
+
+<Terminal code="
+docker compose up -d
+" />
+
+Verifico che il container sia attivo.
+
+<Terminal code="
+docker ps
+" />
+
+Accedo al database tramite `psql`.
+
+<Terminal code="
+docker exec -it timeseries-postgres-lab psql -U admin -d infra_monitoring
+" />
+
+A questo punto l’ambiente è pronto per eseguire comandi SQL.
+</StepCard>
+
+
+
+## Creazione estensione TimescaleDB
+
+<StepCard label="D" title="Abilitazione dell’estensione TimescaleDB">
+Nel file `init.sql` abilito l’estensione TimescaleDB.
+
+<Terminal code="
+CREATE EXTENSION IF NOT EXISTS timescaledb;
+" />
+
+Questa estensione permette di trasformare una normale tabella PostgreSQL in una hypertable, cioè una tabella ottimizzata per dati time-series.
+
+<Info>
+Una hypertable è utile quando i dati crescono nel tempo, come metriche di rete, log, eventi, misurazioni di sistema o dati di monitoraggio.
+</Info>
+</StepCard>
+
+
+
+## Modellazione del database relazionale
+
+<StepCard label="E" title="Creazione della tabella delle sedi">
+Creo una tabella per rappresentare le sedi aziendali.
+
+<Terminal code="
+CREATE TABLE sites (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    city VARCHAR(100) NOT NULL,
+    country VARCHAR(100) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+" />
+
+Questa tabella contiene le informazioni principali sulle sedi: nome, città, nazione e data di creazione del record.
+</StepCard>
+
+
+<StepCard label="F" title="Creazione della tabella dei dispositivi">
+Creo una tabella per i dispositivi IT presenti nelle varie sedi.
+
+<Terminal code="
+CREATE TABLE devices (
+    id SERIAL PRIMARY KEY,
+    site_id INTEGER NOT NULL REFERENCES sites(id) ON DELETE CASCADE,
+    hostname VARCHAR(100) NOT NULL UNIQUE,
+    device_type VARCHAR(50) NOT NULL,
+    ip_address INET NOT NULL UNIQUE,
+    os_name VARCHAR(100),
+    status VARCHAR(30) DEFAULT 'active',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+" />
+
+La relazione è semplice ma realistica: una sede può avere più dispositivi, ogni dispositivo appartiene a una sola sede, ogni hostname è univoco e ogni indirizzo IP è unico.
+
+Il campo `status` permette di distinguere dispositivi attivi, in warning, critici, sconosciuti o in manutenzione.
+</StepCard>
+
+
+
+## Creazione della tabella time-series
+
+<StepCard label="G" title="Creazione della tabella delle metriche">
+Creo la tabella che conterrà le metriche raccolte nel tempo.
+
+<Terminal code="
+CREATE TABLE device_metrics (
+    time TIMESTAMPTZ NOT NULL,
+    device_id INTEGER NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
+    cpu_usage NUMERIC(5,2) NOT NULL,
+    memory_usage NUMERIC(5,2) NOT NULL,
+    latency_ms NUMERIC(8,2),
+    packet_loss NUMERIC(5,2),
+    status_code INTEGER NOT NULL,
+    PRIMARY KEY (time, device_id)
+);
+" />
+
+Ogni riga rappresenta una misurazione associata a un dispositivo in un preciso momento.
+
+I campi principali sono:
+
+- `time`: timestamp della rilevazione;
+- `device_id`: dispositivo monitorato;
+- `cpu_usage`: utilizzo CPU;
+- `memory_usage`: utilizzo memoria;
+- `latency_ms`: latenza media;
+- `packet_loss`: perdita pacchetti;
+- `status_code`: codice operativo della rilevazione.
+</StepCard>
+
+
+
+<StepCard label="H" title="Conversione della tabella in hypertable">
+Converto la tabella `device_metrics` in hypertable TimescaleDB.
+
+<Terminal code="
+SELECT create_hypertable('device_metrics', 'time');
+" />
+
+In questo modo TimescaleDB può partizionare automaticamente i dati in base al tempo.
+
+Questa scelta è importante perché le metriche time-series possono crescere rapidamente: un dispositivo monitorato ogni minuto produce 1440 righe al giorno. Con decine o centinaia di dispositivi, il volume aumenta molto velocemente.
+</StepCard>
+
+
+## Inserimento dati di esempio
+
+<StepCard label="I" title="Inserimento delle sedi aziendali">
+Inserisco alcune sedi di esempio.
+
+<Terminal code="
+INSERT INTO sites (name, city, country)
+VALUES
+('Headquarters', 'Milano', 'Italy'),
+('Branch Office South', 'Catanzaro', 'Italy'),
+('Datacenter Lab', 'Roma', 'Italy');
+" />
+
+Questi dati rappresentano tre sedi logiche: una sede principale, una filiale e un piccolo datacenter di laboratorio.
+</StepCard>
+
+<StepCard label="J" title="Inserimento dei dispositivi">
+Inserisco alcuni dispositivi associati alle sedi.
+
+<Terminal code="
+INSERT INTO devices (site_id, hostname, device_type, ip_address, os_name, status)
+VALUES
+(1, 'fw-milano-01', 'firewall', '10.10.1.1', 'pfSense', 'active'),
+(1, 'sw-milano-01', 'switch', '10.10.1.2', 'Cisco IOS', 'active'),
+(2, 'srv-catanzaro-01', 'server', '10.20.1.10', 'Ubuntu Server', 'active'),
+(3, 'db-roma-01', 'database-server', '10.30.1.20', 'PostgreSQL Linux', 'active');
+" />
+
+In questo modo il database contiene asset differenti: firewall, switch, server Linux e database server.
+</StepCard>
+
+<StepCard label="K" title="Generazione di metriche simulate">
+Genero metriche simulate sulle ultime 24 ore.
+
+<Terminal code="
+INSERT INTO device_metrics (
+    time,
+    device_id,
+    cpu_usage,
+    memory_usage,
+    latency_ms,
+    packet_loss,
+    status_code
+)
+SELECT
+    NOW() - (interval '1 minute' * generate_series(1, 1440)),
+    d.id,
+    ROUND((random() * 70 + 10)::numeric, 2),
+    ROUND((random() * 60 + 20)::numeric, 2),
+    ROUND((random() * 40 + 5)::numeric, 2),
+    ROUND((random() * 2)::numeric, 2),
+    200
+FROM devices d;
+" />
+
+Questa query genera dati fittizi ma realistici: 1440 minuti equivalgono a 24 ore e per ogni dispositivo viene creata una metrica al minuto.
+
+CPU, RAM, latenza e packet loss sono generati casualmente, ma con valori compatibili con uno scenario tecnico credibile.
+</StepCard>
+
+
+
+## Query su database relazionale
+
+<StepCard label="L" title="Recupero dei dispositivi attivi">
+Eseguo una query semplice per recuperare tutti i dispositivi attivi.
+
+<Terminal code="
+SELECT
+    hostname,
+    device_type,
+    ip_address,
+    os_name,
+    status
+FROM devices
+WHERE status = 'active';
+" />
+
+Questa query dimostra la capacità di filtrare dati strutturati tramite clausola `WHERE`.
+</StepCard>
+
+
+<StepCard label="M" title="JOIN tra sedi e dispositivi">
+Recupero i dispositivi associati alla relativa sede.
+
+<Terminal code="
+SELECT
+    s.name AS site_name,
+    s.city,
+    d.hostname,
+    d.device_type,
+    d.ip_address,
+    d.os_name
+FROM devices d
+JOIN sites s ON d.site_id = s.id
+ORDER BY s.name, d.hostname;
+" />
+
+Questa query mostra l’utilizzo di una relazione tra tabelle.
+
+Il risultato permette di sapere dove si trova ogni dispositivo, a quale sede appartiene, quale sistema operativo utilizza e quale indirizzo IP è assegnato.
+</StepCard>
+
+<StepCard label="N" title="Conteggio dei dispositivi per sede">
+Creo un report inventariale che mostra quanti dispositivi sono presenti in ogni sede.
+
+<Terminal code="
+SELECT
+    s.name AS site_name,
+    COUNT(d.id) AS total_devices
+FROM sites s
+LEFT JOIN devices d ON d.site_id = s.id
+GROUP BY s.name
+ORDER BY total_devices DESC;
+" />
+
+Questa query utilizza `LEFT JOIN`, `COUNT`, `GROUP BY` e `ORDER BY`.
+
+È utile per produrre una vista sintetica dell’inventario.
+</StepCard>
+
+
+
+## Query su dati time-series
+
+<StepCard label="O" title="Recupero delle ultime metriche registrate">
+Recupero le ultime metriche raccolte per ogni dispositivo.
+
+<Terminal code="
+SELECT
+    d.hostname,
+    m.time,
+    m.cpu_usage,
+    m.memory_usage,
+    m.latency_ms,
+    m.packet_loss
+FROM device_metrics m
+JOIN devices d ON d.id = m.device_id
+ORDER BY m.time DESC
+LIMIT 20;
+" />
+
+Questa query simula una consultazione operativa tipica di un sistema di monitoraggio.
+</StepCard>
+
+<StepCard label="P" title="Calcolo della media CPU nelle ultime 6 ore">
+Calcolo il carico medio CPU dei dispositivi nelle ultime 6 ore.
+
+<Terminal code="
+SELECT
+    d.hostname,
+    ROUND(AVG(m.cpu_usage), 2) AS avg_cpu_usage
+FROM device_metrics m
+JOIN devices d ON d.id = m.device_id
+WHERE m.time >= NOW() - INTERVAL '6 hours'
+GROUP BY d.hostname
+ORDER BY avg_cpu_usage DESC;
+" />
+
+Questa query consente di identificare i dispositivi che hanno avuto maggiore carico CPU in una finestra temporale recente.
+</StepCard>
+
+<StepCard label="Q" title="Analisi della latenza media per dispositivo">
+Calcolo la latenza media e la latenza massima per ogni dispositivo.
+
+<Terminal code="
+SELECT
+    d.hostname,
+    ROUND(AVG(m.latency_ms), 2) AS avg_latency_ms,
+    ROUND(MAX(m.latency_ms), 2) AS max_latency_ms
+FROM device_metrics m
+JOIN devices d ON d.id = m.device_id
+WHERE m.time >= NOW() - INTERVAL '24 hours'
+GROUP BY d.hostname
+ORDER BY avg_latency_ms DESC;
+" />
+
+Questa query è utile per troubleshooting di rete.
+
+Un valore alto di latenza media può indicare congestione, problemi di routing, link saturi, apparati sovraccarichi, problemi lato ISP o problemi di configurazione.
+</StepCard>
+
+<StepCard label="R" title="Identificazione di anomalie CPU">
+Cerco dispositivi con CPU superiore all’80%.
+
+<Terminal code="
+SELECT
+    d.hostname,
+    m.time,
+    m.cpu_usage,
+    m.memory_usage,
+    m.latency_ms
+FROM device_metrics m
+JOIN devices d ON d.id = m.device_id
+WHERE m.cpu_usage > 80
+ORDER BY m.cpu_usage DESC, m.time DESC;
+" />
+
+Questa query rappresenta una prima forma di detection operativa.
+
+Non è ancora un sistema SIEM, ma introduce un concetto importante: i dati tecnici possono essere interrogati per individuare condizioni anomale.
+</StepCard>
+
+
+
+## Aggregazioni temporali con TimescaleDB
+
+<StepCard label="S" title="Aggregazione delle metriche per intervalli orari">
+Uso `time_bucket` per aggregare le metriche su base oraria.
+
+<Terminal code="
+SELECT
+    time_bucket('1 hour', m.time) AS bucket,
+    d.hostname,
+    ROUND(AVG(m.cpu_usage), 2) AS avg_cpu,
+    ROUND(AVG(m.memory_usage), 2) AS avg_memory,
+    ROUND(AVG(m.latency_ms), 2) AS avg_latency
+FROM device_metrics m
+JOIN devices d ON d.id = m.device_id
+WHERE m.time >= NOW() - INTERVAL '24 hours'
+GROUP BY bucket, d.hostname
+ORDER BY bucket DESC, d.hostname;
+" />
+
+Questa query è tipica dei sistemi di osservabilità.
+
+Permette di trasformare dati granulari, raccolti minuto per minuto, in dati più leggibili per dashboard e report.
+</StepCard>
+
+
+<StepCard label="T" title="Aggregazione giornaliera delle metriche">
+Creo una query per analizzare le metriche su base giornaliera.
+
+<Terminal code="
+SELECT
+    time_bucket('1 day', time) AS day,
+    device_id,
+    ROUND(AVG(cpu_usage), 2) AS avg_cpu,
+    ROUND(MAX(cpu_usage), 2) AS peak_cpu,
+    ROUND(AVG(memory_usage), 2) AS avg_memory,
+    ROUND(AVG(packet_loss), 2) AS avg_packet_loss
+FROM device_metrics
+GROUP BY day, device_id
+ORDER BY day DESC, device_id;
+" />
+
+Questa query può essere usata per analisi storiche, individuazione di trend, confronto tra dispositivi e preparazione di report per il team IT.
+</StepCard>
+
+
+
+## Creazione di viste SQL
+
+<StepCard label="U" title="Creazione della vista inventario dispositivi">
+Creo una vista per semplificare la consultazione dell’inventario.
+
+<Terminal code="
+CREATE OR REPLACE VIEW v_device_inventory AS
+SELECT
+    d.id AS device_id,
+    d.hostname,
+    d.device_type,
+    d.ip_address,
+    d.os_name,
+    d.status,
+    s.name AS site_name,
+    s.city,
+    s.country
+FROM devices d
+JOIN sites s ON s.id = d.site_id;
+" />
+
+Interrogo la vista.
+
+<Terminal code="
+SELECT * FROM v_device_inventory ORDER BY site_name, hostname;
+" />
+
+La vista permette di nascondere la complessità della JOIN e rende la consultazione più pulita.
+</StepCard>
+
+
+
+<StepCard label="V" title="Creazione della vista per metriche critiche">
+Creo una vista per individuare rapidamente condizioni potenzialmente critiche.
+
+<Terminal code="
+CREATE OR REPLACE VIEW v_critical_metrics AS
+SELECT
+    d.hostname,
+    d.device_type,
+    m.time,
+    m.cpu_usage,
+    m.memory_usage,
+    m.latency_ms,
+    m.packet_loss
+FROM device_metrics m
+JOIN devices d ON d.id = m.device_id
+WHERE
+    m.cpu_usage > 85
+    OR m.memory_usage > 90
+    OR m.latency_ms > 100
+    OR m.packet_loss > 5;
+" />
+
+Uso la vista.
+
+<Terminal code="
+SELECT * FROM v_critical_metrics ORDER BY time DESC;
+" />
+
+Questa vista può essere usata come base per dashboard, alerting, report automatici, controlli periodici e attività di troubleshooting.
+</StepCard>
+
+
+
+## Procedure e funzioni SQL
+
+<StepCard label="W" title="Creazione della funzione per valutare lo stato di salute">
+Creo una funzione PL/pgSQL che restituisce lo stato operativo di un dispositivo in base alle sue ultime metriche.
+
+<Terminal code="
+CREATE OR REPLACE FUNCTION get_device_health(p_device_id INTEGER)
+RETURNS TEXT
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    latest_cpu NUMERIC;
+    latest_memory NUMERIC;
+    latest_latency NUMERIC;
+    latest_packet_loss NUMERIC;
+BEGIN
+    SELECT
+        cpu_usage,
+        memory_usage,
+        latency_ms,
+        packet_loss
+    INTO
+        latest_cpu,
+        latest_memory,
+        latest_latency,
+        latest_packet_loss
+    FROM device_metrics
+    WHERE device_id = p_device_id
+    ORDER BY time DESC
+    LIMIT 1;
+
+    IF latest_cpu IS NULL THEN
+        RETURN 'NO DATA';
+    END IF;
+
+    IF latest_cpu > 90 OR latest_memory > 95 OR latest_latency > 150 OR latest_packet_loss > 10 THEN
+        RETURN 'CRITICAL';
+    ELSIF latest_cpu > 75 OR latest_memory > 85 OR latest_latency > 80 OR latest_packet_loss > 3 THEN
+        RETURN 'WARNING';
+    ELSE
+        RETURN 'OK';
+    END IF;
+END;
+$$;
+" />
+
+Eseguo la funzione.
+
+<Terminal code="
+SELECT
+    hostname,
+    get_device_health(id) AS health_status
+FROM devices
+ORDER BY hostname;
+" />
+
+Questa funzione dimostra la capacità di recuperare dati recenti, dichiarare variabili, usare condizioni `IF`, restituire uno stato calcolato e incapsulare logica tecnica all’interno del database.
+</StepCard>
+
+
+<StepCard label="X" title="Creazione della procedura per aggiornare lo stato del dispositivo">
+Creo una procedura che aggiorna il campo `status` nella tabella `devices` in base allo stato calcolato.
+
+<Terminal code="
+CREATE OR REPLACE PROCEDURE update_device_status(p_device_id INTEGER)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    health TEXT;
+BEGIN
+    health := get_device_health(p_device_id);
+
+    IF health = 'CRITICAL' THEN
+        UPDATE devices
+        SET status = 'critical'
+        WHERE id = p_device_id;
+    ELSIF health = 'WARNING' THEN
+        UPDATE devices
+        SET status = 'warning'
+        WHERE id = p_device_id;
+    ELSIF health = 'OK' THEN
+        UPDATE devices
+        SET status = 'active'
+        WHERE id = p_device_id;
+    ELSE
+        UPDATE devices
+        SET status = 'unknown'
+        WHERE id = p_device_id;
+    END IF;
+END;
+$$;
+" />
+
+Eseguo la procedura.
+
+<Terminal code="
+CALL update_device_status(1);
+" />
+
+Verifico il risultato.
+
+<Terminal code="
+SELECT hostname, status FROM devices WHERE id = 1;
+" />
+
+Questa procedura simula una logica operativa reale: il database non si limita a conservare dati, ma può anche applicare regole di aggiornamento coerenti.
+</StepCard>
+
+
+## Indici e ottimizzazione query
+
+<StepCard label="Y" title="Creazione degli indici">
+Quando il volume dei dati cresce, le query su tabelle time-series possono diventare pesanti.
+
+Creo indici mirati sulle colonne più usate nei filtri.
+
+<Terminal code="
+CREATE INDEX idx_device_metrics_device_time
+ON device_metrics (device_id, time DESC);
+" />
+
+Creo un indice sulla latenza per query di troubleshooting.
+
+<Terminal code="
+CREATE INDEX idx_device_metrics_latency
+ON device_metrics (latency_ms);
+" />
+
+Creo un indice sul tipo di dispositivo.
+
+<Terminal code="
+CREATE INDEX idx_devices_type
+ON devices (device_type);
+" />
+
+Gli indici aiutano il database a trovare più velocemente i dati, soprattutto quando le tabelle diventano grandi.
+</StepCard>
+
+<StepCard label="Z" title="Analisi del piano di esecuzione con EXPLAIN ANALYZE">
+Uso `EXPLAIN ANALYZE` per osservare come PostgreSQL esegue una query.
+
+<Terminal code="
+EXPLAIN ANALYZE
+SELECT
+    d.hostname,
+    AVG(m.cpu_usage) AS avg_cpu
+FROM device_metrics m
+JOIN devices d ON d.id = m.device_id
+WHERE
+    m.device_id = 1
+    AND m.time >= NOW() - INTERVAL '6 hours'
+GROUP BY d.hostname;
+" />
+
+`EXPLAIN ANALYZE` mostra il piano di esecuzione reale della query.
+
+Permette di capire se viene usato un indice, quante righe vengono lette, quanto tempo richiede la query, quali operazioni sono più costose e se una JOIN o un filtro sono inefficienti.
+
+<Warning>
+Su database di produzione bisogna usare EXPLAIN ANALYZE con attenzione, perché la query viene realmente eseguita. Su query di modifica, come UPDATE o DELETE, può produrre effetti reali se non viene usato dentro una transazione di test.
+</Warning>
+</StepCard>
+
+
+
+## Continuous Aggregate per dashboard
+
+<StepCard label="AA" title="Creazione di una continuous aggregate">
+Le query aggregate su grandi quantità di dati possono diventare costose.
+
+Per questo creo una continuous aggregate, cioè una vista materializzata aggiornata progressivamente da TimescaleDB.
+
+<Terminal code="
+CREATE MATERIALIZED VIEW device_metrics_hourly
+WITH (timescaledb.continuous) AS
+SELECT
+    time_bucket('1 hour', time) AS bucket,
+    device_id,
+    ROUND(AVG(cpu_usage), 2) AS avg_cpu,
+    ROUND(AVG(memory_usage), 2) AS avg_memory,
+    ROUND(AVG(latency_ms), 2) AS avg_latency,
+    ROUND(MAX(cpu_usage), 2) AS max_cpu,
+    ROUND(MAX(memory_usage), 2) AS max_memory
+FROM device_metrics
+GROUP BY bucket, device_id
+WITH NO DATA;
+" />
+
+Questa vista aggregata permette di preparare dati già sintetizzati per dashboard e report.
+</StepCard>
+
+<StepCard label="AB" title="Creazione della policy di refresh automatico">
+Aggiungo una policy di refresh automatico.
+
+<Terminal code="
+SELECT add_continuous_aggregate_policy(
+    'device_metrics_hourly',
+    start_offset => INTERVAL '7 days',
+    end_offset => INTERVAL '1 hour',
+    schedule_interval => INTERVAL '30 minutes'
+);
+" />
+
+Ora posso interrogare la vista aggregata.
+
+<Terminal code="
+SELECT
+    h.bucket,
+    d.hostname,
+    h.avg_cpu,
+    h.avg_memory,
+    h.avg_latency,
+    h.max_cpu,
+    h.max_memory
+FROM device_metrics_hourly h
+JOIN devices d ON d.id = h.device_id
+ORDER BY h.bucket DESC, d.hostname;
+" />
+
+Questa soluzione è più adatta a dashboard e report periodici rispetto a una query che ricalcola continuamente tutto il dataset grezzo.
+</StepCard>
+
+
+
+## Query utili per troubleshooting operativo
+
+<StepCard label="AC" title="Ricerca dispositivi con latenza anomala">
+Cerco dispositivi con latenza superiore a 100 ms.
+
+<Terminal code="
+SELECT
+    d.hostname,
+    d.ip_address,
+    m.time,
+    m.latency_ms
+FROM device_metrics m
+JOIN devices d ON d.id = m.device_id
+WHERE m.latency_ms > 100
+ORDER BY m.latency_ms DESC, m.time DESC;
+" />
+
+Questa query aiuta a individuare possibili problemi di rete, saturazione, routing non ottimale o collegamenti instabili.
+</StepCard>
+
+<StepCard label="AD" title="Ricerca dispositivi con packet loss">
+Cerco dispositivi con perdita pacchetti superiore al 3%.
+
+<Terminal code="
+SELECT
+    d.hostname,
+    d.ip_address,
+    m.time,
+    m.packet_loss
+FROM device_metrics m
+JOIN devices d ON d.id = m.device_id
+WHERE m.packet_loss > 3
+ORDER BY m.packet_loss DESC, m.time DESC;
+" />
+
+La perdita pacchetti è un indicatore importante in attività di troubleshooting, soprattutto su reti instabili, VPN, link WAN o collegamenti wireless.
+</StepCard>
+
+<StepCard label="AE" title="Media delle metriche per tipo di dispositivo">
+Calcolo la media delle metriche raggruppandole per tipo di dispositivo.
+
+<Terminal code="
+SELECT
+    d.device_type,
+    ROUND(AVG(m.cpu_usage), 2) AS avg_cpu,
+    ROUND(AVG(m.memory_usage), 2) AS avg_memory,
+    ROUND(AVG(m.latency_ms), 2) AS avg_latency,
+    ROUND(AVG(m.packet_loss), 2) AS avg_packet_loss
+FROM device_metrics m
+JOIN devices d ON d.id = m.device_id
+GROUP BY d.device_type
+ORDER BY avg_latency DESC;
+" />
+
+Questa query permette di confrontare firewall, switch, server e database server dal punto di vista operativo.
+</StepCard>
+
+<StepCard label="AF" title="Recupero dell’ultimo dato disponibile per ogni dispositivo">
+Recupero la fotografia più recente dello stato di ogni dispositivo.
+
+<Terminal code="
+SELECT DISTINCT ON (d.id)
+    d.hostname,
+    d.device_type,
+    m.time,
+    m.cpu_usage,
+    m.memory_usage,
+    m.latency_ms,
+    m.packet_loss
+FROM devices d
+JOIN device_metrics m ON m.device_id = d.id
+ORDER BY d.id, m.time DESC;
+" />
+
+Questa query è utile quando serve visualizzare lo stato aggiornato dell’infrastruttura senza leggere tutta la serie storica.
+</StepCard>
+
+
+
+## Controlli di integrità
+
+<StepCard label="AG" title="Verifica dei dispositivi senza metriche">
+Controllo se esistono dispositivi presenti nell’inventario ma senza metriche associate.
+
+<Terminal code="
+SELECT
+    d.hostname,
+    d.device_type,
+    d.ip_address
+FROM devices d
+LEFT JOIN device_metrics m ON m.device_id = d.id
+WHERE m.device_id IS NULL;
+" />
+
+Questa query permette di individuare dispositivi registrati ma non monitorati.
+</StepCard>
+
+<StepCard label="AH" title="Verifica di metriche fuori soglia">
+Controllo se esistono valori non validi o fuori range.
+
+<Terminal code="
+SELECT
+    d.hostname,
+    m.time,
+    m.cpu_usage,
+    m.memory_usage,
+    m.latency_ms,
+    m.packet_loss
+FROM device_metrics m
+JOIN devices d ON d.id = m.device_id
+WHERE
+    m.cpu_usage < 0 OR m.cpu_usage > 100
+    OR m.memory_usage < 0 OR m.memory_usage > 100
+    OR m.packet_loss < 0 OR m.packet_loss > 100;
+" />
+
+Questo controllo serve per individuare dati sporchi, errori di raccolta o valori non validi.
+</StepCard>
+
+</div>
+
+## Competenze acquisite
+
+## Database relazionali
+
+Ho creato uno schema relazionale con tabelle normalizzate, chiavi primarie, chiavi esterne, vincoli di unicità, relazioni uno-a-molti, query con JOIN, viste SQL e aggregazioni.
+
+## Time-series database
+
+Ho gestito dati temporali tramite timestamp, metriche periodiche, hypertable, aggregazioni temporali, `time_bucket`, continuous aggregate e policy di refresh.
+
+## SQL operativo
+
+Ho scritto query per inventario, troubleshooting, analisi anomalie, report, dashboard, verifica integrità dati ed estrazione dell’ultimo stato disponibile.
+
+## Automazione tramite procedure
+
+Ho implementato logica lato database usando funzioni PL/pgSQL, procedure, variabili, condizioni e aggiornamento automatico dello stato dispositivi.
+
+## Performance e troubleshooting
+
+Ho applicato concetti di ottimizzazione tramite indici, `EXPLAIN ANALYZE`, analisi del piano di esecuzione, viste materializzate continue e riduzione del costo delle query aggregate.
+
+
+
+## Errori comuni da evitare
+
+## Creare tabelle senza chiavi primarie
+
+Una tabella senza chiave primaria è più difficile da gestire, aggiornare e collegare ad altre tabelle.
+
+## Non usare indici sulle colonne filtrate spesso
+
+Se una query filtra sempre per `device_id`, `time`, `hostname` o `status`, è importante valutare indici mirati.
+
+## Usare SELECT * in produzione
+
+`SELECT *` può essere comodo in fase di test, ma in produzione è meglio selezionare solo le colonne necessarie.
+
+## Aggregare milioni di righe ogni volta
+
+Per dashboard e report periodici è meglio usare viste aggregate, materialized view o continuous aggregate.
+
+## Non controllare il piano di esecuzione
+
+Scrivere una query che funziona non significa scrivere una query efficiente. L’analisi del piano di esecuzione è una parte fondamentale del lavoro su database.
+
+
+
+## Conclusione
+
+Questo lab mostra un flusso completo di lavoro su database relazionali e time-series.
+
+Sono partito dalla progettazione dello schema, ho creato tabelle relazionali, ho inserito dati simulati, ho eseguito query operative, ho creato viste, funzioni, procedure e aggregazioni temporali. Ho inoltre introdotto concetti di ottimizzazione tramite indici ed `EXPLAIN ANALYZE`.
+
+Il valore pratico di questo laboratorio è che riproduce una situazione reale: un’infrastruttura IT che produce dati, metriche e stati operativi da interrogare e analizzare.
+
+Questo progetto dimostra capacità utili in ambito networking, sistemi Linux, monitoraggio infrastrutturale, troubleshooting, cybersecurity, DevOps, database administration e IT operations.
+
+Non si tratta solo di conoscere SQL, ma di saperlo applicare a un contesto tecnico concreto, leggibile e utile per prendere decisioni operative.
+
+<Note>Questo lab può essere esteso collegando il database a Grafana, aggiungendo una pipeline di raccolta metriche con Telegraf o Prometheus, oppure integrando alert automatici per CPU, RAM, latenza e packet loss.</Note>
+

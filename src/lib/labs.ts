@@ -1,9 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-// Utilizziamo require per bypassare i problemi di import di TypeScript/Turbopack
 const matter = require('gray-matter');
-
 const labsDirectory = path.join(process.cwd(), 'content/labs');
 
 export function getSortedLabsData() {

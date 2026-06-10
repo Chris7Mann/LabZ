@@ -14,6 +14,7 @@ import Comments from "@/components/Comments";
 import Warning from "@/components/mdx/Warning";
 import Info from "@/components/mdx/Info";
 import Diagram from "@/components/mdx/Diagram";
+import Breadcrumb from "@/components/Breadcrumb";
 
 
 const components = {
@@ -63,7 +64,7 @@ export default async function LabPage({ params }: { params: Promise<{ slug: stri
           source={content}
           components={components} />
       </div>
-
+      
       {/* Sezioni aggiuntive */}
       <LabNavigation prev={prev} next={next} />
       <SimilarPosts posts={similar} />
