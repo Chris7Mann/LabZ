@@ -15,7 +15,6 @@ Per configurare un EtherChannel LACP su Cisco,
 devi prima selezionare le interfacce fisiche e poi associarle a un'interfaccia logica denominata Port-channel.
 
 <Note>
-
 Nelle architetture di rete gerarchiche (Core, Distribution, Access), il traffico di centinaia di utenti deve passare attraverso un unico link per raggiungere il cuore della rete.
 
 **Problema:** Se usi un solo cavo e questo si rompe, l'intero settore della rete isolato. Se usi due cavi senza LACP, lo Spanning Tree (STP) ne bloccherà uno per evitare loop.
@@ -62,11 +61,11 @@ Switch# show etherchannel summary "/>
 <StepCard label="D" title="Regole d'oro per la configurazione">
 
 <Note>
-
 **Velocità e Duplex:** Devono essere identici su tutte le porte fisiche del gruppo.<br></br>
-**VLAN:** Tutte le porte devono appartenere alla stessa VLAN o essere tutte configurate come Trunk con gli stessi parametri (Native VLAN e VLAN permesse).<br></br>
-**Spanning Tree:** Il protocollo STP vedrà il Port-channel come un'unica interfaccia, evitando che una delle porte fisiche venga messa in stato "Blocking".<br></br>
 
+**VLAN:** Tutte le porte devono appartenere alla stessa VLAN o essere tutte configurate come Trunk con gli stessi parametri (Native VLAN e VLAN permesse).<br></br>
+
+**Spanning Tree:** Il protocollo STP vedrà il Port-channel come un'unica interfaccia, evitando che una delle porte fisiche venga messa in stato "Blocking".<br></br>
 </Note>
 
 </StepCard>
