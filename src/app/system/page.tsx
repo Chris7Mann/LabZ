@@ -9,7 +9,10 @@ export default function SystemPage() {
             { label: "SYSTEM", href: "#" },
             { label: "WORKSHOPS", href: "/workshops" }
           ]} />
-        <SectionTitle> System Identity </SectionTitle>
+          <div className="text-4xl font-bold text-white">
+            <h1>System Identity</h1>
+            <div className="w-16 h-1 bg-teal-500 rounded-full mt-5" />
+            </div> 
 
         {/* Sezione About Us con foto */}
         <section className="grid md:grid-cols-2 gap-12 items-center mb-20">

@@ -265,7 +265,12 @@ Se il server ospita un sito web:
 <Terminal code="sudo ufw allow 80/tcp" />
 <Terminal code="sudo ufw allow 443/tcp" />
 
-<Note> Se usi Docker, devi prestare attenzione: Docker può modificare regole iptables e pubblicare porte indipendentemente da UFW, a seconda della configurazione. In ambienti containerizzati è importante verificare sempre quali porte risultano effettivamente esposte dall’esterno.</Note>
+<Note> 
+Se usi Docker, devi prestare attenzione: 
+Docker può modificare regole iptables e pubblicare porte indipendentemente da UFW, a seconda della configurazione. 
+
+In ambienti containerizzati è importante verificare sempre quali porte risultano effettivamente esposte dall’esterno.
+</Note>
 
 Per controllare le porte in ascolto:
 
@@ -636,7 +641,9 @@ Un server dovrebbe essere costruito in base al suo ruolo:
   <li>laboratorio di test.</li>
 </ul>
 
-<Note> Ogni ruolo dovrebbe avere solo i componenti necessari. </Note>
+<Note> 
+Ogni ruolo dovrebbe avere solo i componenti necessari. 
+</Note>
 
 
 

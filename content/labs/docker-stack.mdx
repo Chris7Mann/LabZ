@@ -15,10 +15,9 @@ tags: ["CONTAINER", "DEVOPS"]
 In questo laboratorio realizzeremo un ambiente composto da un Reverse Proxy Nginx e una Web Application interna, separati tramite rete Docker dedicata e con persistenza dei dati tramite Docker Volume.
 
 
-
-<SectionTitle>Scenario del Laboratorio</SectionTitle>
-
-<Text>
+<div className="[&_h2]:mt-20! [&_h2]:bg-[#191919]! [&_h2]:p-4! [&_h2]:border-l-4 [&_h2]:border-emerald-500 [&_h2]:text-emerald-300">
+## Scenario del Laboratorio
+</div>
 
 Immaginiamo di dover pubblicare una piccola applicazione web interna per un blog tecnico di informatica e networking.
 
@@ -28,7 +27,6 @@ Tutte le richieste HTTP dovranno passare prima da Nginx, che fungerà da Reverse
 
 I dati dell'applicazione dovranno essere persistenti, quindi non dovranno andare persi quando un container viene eliminato o ricreato.
 
-</Text>
 
 <Info>
 
@@ -37,21 +35,21 @@ Questo laboratorio introduce concetti fondamentali utilizzati anche in ambienti 
 </Info>
 
 
+<div className="[&_h2]:mt-20! [&_h2]:bg-[#191919]! [&_h2]:p-4! [&_h2]:border-l-4 [&_h2]:border-emerald-500 [&_h2]:text-emerald-300">
+## Architettura Finale
+</div>
 
-<SectionTitle>Architettura Finale</SectionTitle>
 
-<Text>
 
 L'architettura finale sarà composta da due container principali:
 
-* **blog-nginx**: Reverse Proxy Nginx esposto sulla porta 80 dell'host
-* **blog-app**: applicazione web interna basata su Apache HTTP Server
+* **`blog-nginx`**: Reverse Proxy Nginx esposto sulla porta 80 dell'host
+* **`blog-app`**: applicazione web interna basata su Apache HTTP Server
 
-I due container comunicheranno tramite una rete Docker privata chiamata **blog-network**.
+I due container comunicheranno tramite una rete Docker privata chiamata **`blog-network`**.
 
-I dati persistenti saranno salvati nel volume Docker **blog-data**.
+I dati persistenti saranno salvati nel volume Docker **`blog-data`**.
 
-</Text>
 
 <Diagram code="
 graph TD
@@ -71,10 +69,11 @@ L'unico servizio pubblicato verso l'esterno sarà **Nginx**.
 </Warning>
 
 
+<div className="[&_h2]:mt-20! [&_h2]:bg-[#191919]! [&_h2]:p-4! [&_h2]:border-l-4 [&_h2]:border-emerald-500 [&_h2]:text-emerald-300">
+## Obiettivi del Lab
+</div>
 
-<SectionTitle>Obiettivi del Lab</SectionTitle>
 
-<Text>
 
 Al termine del laboratorio sarai in grado di:
 
@@ -89,15 +88,11 @@ Al termine del laboratorio sarai in grado di:
 </ul>
 
 
-</Text>
+<div className="[&_h2]:mt-20! [&_h2]:bg-[#191919]! [&_h2]:p-4! [&_h2]:border-l-4 [&_h2]:border-emerald-500 [&_h2]:text-emerald-300">
+## Prerequisiti
+</div>
 
-
-
-<SectionTitle>Prerequisiti</SectionTitle>
-
-<Text>
-
-Prima di iniziare dovresti conoscere almeno questi concetti:
+**Prima di iniziare dovresti conoscere almeno questi concetti:**
 
 <ul className="list-disc pl-6 space-y-1">
   <li>Differenza tra immagine e container</li>
@@ -108,7 +103,6 @@ Prima di iniziare dovresti conoscere almeno questi concetti:
   <li>Comandi fondamentali Docker</li>
 </ul>
 
-</Text>
 
 <Note>
 
@@ -221,7 +215,6 @@ Inseriamo questa configurazione:
 
 <Terminal code="server {
 
-```
 listen 80;
 
 location / {
@@ -234,10 +227,7 @@ location / {
 
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 
-}
-```
-
-}"/>
+  }"/>
 
 <Note>
 
@@ -253,7 +243,7 @@ Docker Compose fornisce un DNS interno che permette ai container di risolversi t
 
 <Warning>
 
-Non usare **localhost** dentro `proxy_pass`.
+Non usare **`localhost`** dentro `proxy_pass`.
 
 Dentro un container, `localhost` indica il container stesso, non il tuo computer e non un altro container.
 
@@ -646,7 +636,7 @@ Se il file esiste ancora, la persistenza tramite Docker Volume sta funzionando.
 
 <Note>
 
-**docker compose down** elimina i container e la rete creata da Compose, ma non elimina automaticamente i volumi.
+**`docker compose down`** elimina i container e la rete creata da Compose, ma non elimina automaticamente i volumi.
 
 Per eliminare anche i volumi bisogna usare un comando specifico.
 
@@ -669,7 +659,7 @@ Per eliminare anche i volumi associati allo stack:
 
 <Warning>
 
-Il comando **docker compose down -v** elimina anche i volumi.
+Il comando **`docker compose down -v`** elimina anche i volumi.
 
 Se nel volume sono presenti dati importanti, verranno rimossi.
 
@@ -681,20 +671,15 @@ Usalo solo quando sei sicuro di voler cancellare anche i dati persistenti.
 
 
 
-
-<SectionTitle>Troubleshooting</SectionTitle>
-
-<Text>
+<div className="[&_h2]:mt-20! [&_h2]:bg-[#191919]! [&_h2]:p-4! [&_h2]:border-l-4 [&_h2]:border-emerald-500 [&_h2]:text-emerald-300">
+## Troubleshooting
+</div>
 
 In un ambiente reale non basta creare lo stack.
 
 Bisogna anche sapere dove guardare quando qualcosa non funziona.
 
 Questa sezione raccoglie i controlli più importanti.
-
-</Text>
-
-
 
 
 <StepCard label="R" title="Controllare lo stato dei container">
@@ -812,14 +797,15 @@ nginx: configuration file /etc/nginx/nginx.conf test is successful"/>
 
 
 
-
-<SectionTitle>Best Practice di Produzione</SectionTitle>
+<div className="[&_h2]:mt-20! [&_h2]:bg-[#191919]! [&_h2]:p-4! [&_h2]:border-l-4 [&_h2]:border-emerald-500 [&_h2]:text-emerald-300">
+## Best Practice di Produzione
+</div>
 
 <Warning>
 
-In produzione evita il tag **latest**.
+In produzione evita il tag **`latest`**.
 
-Usare versioni specifiche come **nginx:1.27** o **httpd:2.4** rende il deployment più prevedibile.
+Usare versioni specifiche come **`nginx:1.27`** o **`httpd:2.4`** rende il deployment più prevedibile.
 
 </Warning>
 
@@ -849,20 +835,20 @@ Un Reverse Proxy può essere usato anche per gestire:
 
 **Principio chiave:**
 
-Container = processo effimero
+**Container** = processo effimero
 
-Volume = dato persistente
+**Volume** = dato persistente
 
-Network = comunicazione controllata
+**Network** = comunicazione controllata
 
-Reverse Proxy = punto di ingresso
+**Reverse Proxy** = punto di ingresso
 
 </Note>
 
 
-
-
-<SectionTitle>Riepilogo dei Comandi Utili</SectionTitle>
+<div className="[&_h2]:mt-20! [&_h2]:bg-[#191919]! [&_h2]:p-4! [&_h2]:border-l-4 [&_h2]:border-emerald-500 [&_h2]:text-emerald-300">
+## Riepilogo dei Comandi Utili
+</div>
 
 <StepCard label="W" title="Comandi Docker Compose principali">
 
@@ -894,10 +880,11 @@ Seguire i log in tempo reale:
 
 
 
+<div className="[&_h2]:mt-20! [&_h2]:bg-[#191919]! [&_h2]:p-4! [&_h2]:border-l-4 [&_h2]:border-emerald-500 [&_h2]:text-emerald-300">
+## Competenze Acquisite
+</div>
 
-<SectionTitle>Competenze Acquisite</SectionTitle>
 
-<Text>
 
 **Completando questo laboratorio hai realizzato uno stack multi-container composto da:**
 
@@ -924,7 +911,7 @@ Seguire i log in tempo reale:
   <li>Errori comuni di porta e proxy</li>
 </ul>
 
-</Text>
+
 
 <Info>
 
@@ -934,30 +921,30 @@ Questa architettura è una base solida per comprendere deployment più avanzati 
 
 
 
+<div className="[&_h2]:mt-20! [&_h2]:bg-[#191919]! [&_h2]:p-4! [&_h2]:border-l-4 [&_h2]:border-emerald-500 [&_h2]:text-emerald-300">
+## Domande di Verifica
+</div>
 
-<SectionTitle>Domande di Verifica</SectionTitle>
-
-<Text>
 
 <ol className="list-decimal pl-6 space-y-2">
   <li>Perché Nginx usa <strong>blog-app</strong> invece di un indirizzo IP?</li>
-  <li>Perché non abbiamo esposto direttamente il container <strong>blog-app</strong>?</li>
+  <li>Perché non abbiamo esposto direttamente il container <strong>`blog-app`</strong>?</li>
   <li>Che differenza c'è tra bind mount e Docker Volume?</li>
-  <li>Cosa succede ai dati quando esegui <strong>docker compose down</strong>?</li>
+  <li>Cosa succede ai dati quando esegui <strong>`docker compose down`</strong>?</li>
   <li>Quando invece vengono eliminati anche i volumi?</li>
   <li>Perché in produzione è meglio evitare il tag <strong>latest</strong>?</li>
   <li>Qual è il ruolo della rete Docker <strong>blog-network</strong>?</li>
-  <li>Cosa indica un errore <strong>502 Bad Gateway</strong> in questo scenario?</li>
+  <li>Cosa indica un errore <strong>`502 Bad Gateway`</strong> in questo scenario?</li>
 </ol>
 
-</Text>
 
 
 
 
-<SectionTitle>Conclusione</SectionTitle>
+<div className="[&_h2]:mt-20! [&_h2]:bg-[#191919]! [&_h2]:p-4! [&_h2]:border-l-4 [&_h2]:border-emerald-500 [&_h2]:text-emerald-300">
+## Conclusione
+</div>
 
-<Text>
 
 Questo laboratorio mostra una delle architetture Docker più importanti da comprendere: un'applicazione interna protetta da un Reverse Proxy e collegata a uno spazio dati persistente.
 
@@ -965,4 +952,3 @@ Anche se l'esempio è semplice, il modello è lo stesso usato in molti ambienti 
 
 La separazione tra proxy, applicazione, rete e volume permette di ottenere un'infrastruttura più ordinata, più sicura e più facile da gestire.
 
-</Text>

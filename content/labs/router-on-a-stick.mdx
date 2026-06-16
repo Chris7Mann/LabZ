@@ -47,10 +47,12 @@ switchport trunk allowed vlan none
 # Permettere tutte le VLAN
 switchport trunk allowed vlan all"/>
 
-<Note> **Nota Importante:** Quando ci sono più switch nel router on a stick,devi mettere sempre le porte che collegano i vari switch 
-fra loro in trunk e quando ci sarà la ridondanza con tanti switch su cui passano i pacchetti devi creare su tutti gli switch 
+<Note> 
+**Nota Importante:** Quando ci sono più switch nel router on a stick,devi mettere sempre le porte che collegano i vari switch 
+fra loro in `trunk` e quando ci sarà la ridondanza con tanti switch su cui passano i pacchetti devi creare su tutti gli switch 
 le varie vlan (anche se non colleghi nessuna porta delle vlan interessate su quello switch) altrimenti scarterebbe i pacchetti 
-che gli arrivano di quelle vlan se non le crei sopra ognuno di loro </Note>
+che gli arrivano di quelle vlan se non le crei sopra ognuno di loro 
+</Note>
 
 </StepCard>
 
@@ -104,14 +106,14 @@ Verifichiamo le configurazioni del router.
 
 
 
-<Text>
+<div className="[&_h2]:mt-20! [&_h2]:bg-[#191919]! [&_h2]:p-4! [&_h2]:border-l-4 [&_h2]:border-emerald-500 [&_h2]:text-emerald-300">
 ## Router on a Stick
-
+</div>
 
 Il **"Router on a stick"** (ROAS) è una tecnica di rete che permette a un singolo router di instradare il traffico 
 tra più VLAN (reti virtuali) utilizzando una sola interfaccia fisica. Riduce i costi hardware ma può creare strozzature di banda, 
 poiché tutto il traffico inter-VLAN deve passare attraverso un unico collegamento.
-</Text>
+
 
 
 <StepCard label="A" title="Per far collegare due Router on a Stick">
@@ -141,8 +143,10 @@ Router1(config)# ip route 192.168.2.0 255.255.255.0 10.0.0.1
 Router1(config)# ip route 192.168.3.0 255.255.255.0 10.0.0.1  
 Router1(config)# exit "/>
 
-<Note>**Suggerimento:** se si vuole fare le route in modo più efficace e veloce 
+<Note>
+**Suggerimento:** se si vuole fare le route in modo più efficace e veloce 
 (senza dover complicare la vita facendo subnetting al millimetro) basta dividere la rete 
-e mettere la maschera /24 (255.0) così che copre tutti gli indirizzi di una rete da 0 a 255.</Note>
+e mettere la maschera `/24` (255.0) così che copre tutti gli indirizzi di una rete da 0 a 255.
+</Note>
 
 </StepCard>

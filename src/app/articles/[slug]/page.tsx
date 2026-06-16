@@ -58,10 +58,10 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
         <main className="min-h-screen py-20">
             <article className="max-w-3xl mx-auto px-4 sm:px-6 md:px-8 text-zinc-300">
 
-                {/* Immagine di copertina (stile largo come nei lab) */}
+                {/* Immagine di copertina */}
                 {data.coverImage && (
                     <div className="w-full mb-12">
-                        <img className="w-full h-auto max-h-[450px] object-cover rounded-xl border border-zinc-800"
+                        <img className="w-full h-auto max-h-112.5 object-cover rounded-xl border border-zinc-800"
                             src={data.coverImage}
                             alt={data.title} />    
                     </div>

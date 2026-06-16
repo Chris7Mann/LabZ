@@ -21,6 +21,12 @@
   }
 }
 
+hr{
+    color: #3f3f46;
+    margin-top: 4rem;
+    margin-bottom: 3rem;
+}
+
 /*********************** style per i labs ************************/
 
 .step-card-container {
@@ -70,10 +76,22 @@
   border: 1px solid var(--color-terminal-border);
   border-left: 4px solid var(--color-accent);
   border-radius: 8px;
-  padding: 1.5rem;
+  padding: 0;
+  overflow: hidden;
   font-family: "Courier New", Courier, monospace;
   color: #f8fafc;
 }
+
+.terminal-header {
+  background-color: #18181b;
+  border-bottom: 1px solid var(--color-terminal-border);
+}
+
+.terminal-body {
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
 
 /* Commenti grigi nel terminale */
 .terminal-block .token.comment {

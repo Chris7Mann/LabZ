@@ -14,7 +14,7 @@ In una rete reale, collegare tutti i dispositivi allo stesso switch e lasciarli 
 
 Le VLAN, cioè Virtual LAN, servono proprio a risolvere questo problema. Una VLAN permette di dividere logicamente una rete fisica in più reti separate. Questo significa che dispositivi collegati allo stesso switch possono appartenere a reti diverse, come se fossero collegati a switch separati.
 
-In questo lab vedremo:
+**In questo lab vedremo:**
 
 <ul className="list-disc pl-6 space-y-1 mb-4">
     <li>cosa sono le VLAN;</li>
@@ -33,14 +33,14 @@ L’obiettivo non è solo copiare comandi, ma capire cosa fa ogni comando e perc
 Immaginiamo una piccola rete aziendale o didattica composta da tre reparti:
 
 <ul className="list-disc pl-6 space-y-1 mb-4">
-    <li>VLAN 10 - STUDENTI;</li>
-    <li>VLAN 20 - DOCENTI;</li>
-    <li>VLAN 30 - SERVER.</li>
+    <li>**`VLAN 10`** - **STUDENTI**</li>
+    <li>**`VLAN 20`** - **DOCENTI**</li>
+    <li>**`VLAN 30`** - **SERVER**</li>
 </ul>
 
-Ogni reparto deve essere separato dagli altri a livello Layer 2. Questo significa che i broadcast della VLAN 10 non devono arrivare alla VLAN 20 o alla VLAN 30.
+Ogni reparto deve essere separato dagli altri a livello Layer 2. Questo significa che i broadcast della **VLAN 10** non devono arrivare alla **VLAN 20** o alla **VLAN 30**.
 
-Tuttavia, in alcuni casi, i dispositivi delle VLAN devono comunicare tra loro. Per esempio, un PC nella VLAN 10 potrebbe dover raggiungere un server nella VLAN 30. Per permettere questa comunicazione serve il routing inter-VLAN.
+Tuttavia, in alcuni casi, i dispositivi delle VLAN devono comunicare tra loro. Per esempio, un PC nella **VLAN 10** potrebbe dover raggiungere un server nella **VLAN 30**. Per permettere questa comunicazione serve il routing inter-VLAN.
 
 Una VLAN da sola separa il traffico. Il routing inter-VLAN permette invece la comunicazione controllata tra VLAN diverse.
 
@@ -585,7 +585,7 @@ Aggiunge una descrizione al collegamento.
 Abilita l’interfaccia fisica.
 
 <Note>
-Nel Router-on-a-Stick l’indirizzo IP non viene configurato direttamente sull’interfaccia fisica principale, ma sulle subinterfacce.
+Nel **Router-on-a-Stick** l’indirizzo IP non viene configurato direttamente sull’interfaccia fisica principale, ma sulle subinterfacce.
 </Note>
 
 </StepCard>
@@ -709,7 +709,8 @@ Ora controlliamo la tabella di routing del router.
 
 Output atteso:
 
-<Terminal code="C    192.168.10.0/24 is directly connected, GigabitEthernet0/0.10
+<Terminal code="
+C    192.168.10.0/24 is directly connected, GigabitEthernet0/0.10
 L    192.168.10.1/32 is directly connected, GigabitEthernet0/0.10
 C    192.168.20.0/24 is directly connected, GigabitEthernet0/0.20
 L    192.168.20.1/32 is directly connected, GigabitEthernet0/0.20
@@ -796,7 +797,9 @@ Lo switch separa il traffico nelle VLAN.
 
 Il router permette la comunicazione tra reti IP diverse.
 
-<Note> Senza routing inter-VLAN, PC1 e SRV1 rimarrebbero separati, anche se fisicamente collegati allo stesso switch.</Note>
+<Note> 
+Senza routing inter-VLAN, PC1 e SRV1 rimarrebbero separati, anche se fisicamente collegati allo stesso switch.
+</Note>
 
 </StepCard>
 
@@ -911,7 +914,8 @@ Controllo:
 
 Correzione:
 
-<Terminal code="Switch# configure terminal
+<Terminal code="
+Switch# configure terminal
 Switch(config)# interface gigabitEthernet 0/1
 Switch(config-if)# switchport mode trunk
 Switch(config-if)# switchport trunk allowed vlan 10,20,30
@@ -981,57 +985,97 @@ Il gateway deve sempre appartenere alla stessa subnet del dispositivo.
 
 Questa è la configurazione completa dello switch SW1.
 
-<Terminal code="enable
-configure terminal
+<Terminal code="
+# Entra nella modalità privilegiata
+Switch> enable.
 
-vlan 10
-name STUDENTI
-exit
+#Entra nella modalità di configurazione globale.
+Switch# configure terminal
 
-vlan 20
-name DOCENTI
-exit
+# Creazione della VLAN 10
+Switch(config)# vlan 10
+Switch(config-vlan)# name STUDENTI
+Switch(config-vlan)# exit
 
-vlan 30
-name SERVER
-exit
+# Creazione della VLAN 20
+Switch(config)# vlan 20
+Switch(config-vlan)# name DOCENTI
+Switch(config-vlan)# exit
 
-interface fastEthernet 0/1
-description PC1_STUDENTI
-switchport mode access
-switchport access vlan 10
-no shutdown
-exit
+# Creazione della VLAN 30
+Switch(config)# vlan 30
+Switch(config-vlan)# name SERVER
+Switch(config-vlan)# exit
+"/>
 
-interface fastEthernet 0/2
-description PC2_DOCENTI
-switchport mode access
-switchport access vlan 20
-no shutdown
-exit
+---
 
-interface fastEthernet 0/3
-description SRV1_SERVER
-switchport mode access
-switchport access vlan 30
-no shutdown
-exit
+Configurazione porte access
+Porta FastEthernet 0/1 per PC1 - VLAN 10
 
-interface gigabitEthernet 0/1
-description TRUNK_VERSO_R1
-switchport mode trunk
-switchport trunk allowed vlan 10,20,30
-no shutdown
-exit
+<Terminal code=" 
+Switch(config)# interface fastEthernet 0/1
+Switch(config-if)# description PC1_STUDENTI
+Switch(config-if)# switchport mode access
+Switch(config-if)# switchport access vlan 10
+Switch(config-if)# no shutdown
+Switch(config-if)# exit
+"/>
 
-end
-write memory" />
+---
+
+Porta FastEthernet 0/2 per PC2 - VLAN 20
+
+<Terminal code=" 
+Switch(config)# interface fastEthernet 0/2
+Switch(config-if)# description PC2_DOCENTI
+Switch(config-if)# switchport mode access
+Switch(config-if)# switchport access vlan 20
+Switch(config-if)# no shutdown
+Switch(config-if)# exit
+"/>
+
+---
+
+Porta FastEthernet 0/3 per Server - VLAN 30
+
+<Terminal code="
+Switch(config)# interface fastEthernet 0/3
+Switch(config-if)# description SRV1_SERVER
+Switch(config-if)# switchport mode access
+Switch(config-if)# switchport access vlan 30
+Switch(config-if)# no shutdown
+Switch(config-if)# exit
+"/>
+
+---
+
+Configurazione porta trunk verso il router
+
+<Terminal code=" 
+Switch(config)# interface gigabitEthernet 0/1
+Switch(config-if)# description TRUNK_VERSO_R1
+Switch(config-if)# switchport mode trunk
+Switch(config-if)# switchport trunk allowed vlan 10,20,30
+Switch(config-if)# no shutdown
+Switch(config-if)# exit
+"/>
+
+---
+
+Uscita e salvataggio
+
+<Terminal code=" 
+Switch(config)# end
+Switch# write memory
+"/>
+
 
 Il comando `write memory` salva la configurazione attiva nella memoria di avvio.
 
 In alternativa puoi usare:
 
-<Terminal code="copy running-config startup-config" />
+<Terminal code="Switch# copy running-config startup-config" />
 
 </StepCard>
 
@@ -1039,34 +1083,83 @@ In alternativa puoi usare:
 
 Questa è la configurazione completa del router R1.
 
-<Terminal code="enable
-configure terminal
+<Terminal code="
+Router> enable
+Router# configure terminal
+"/>
 
-interface gigabitEthernet 0/0
-description LINK_TRUNK_VERSO_SW1
-no shutdown
-exit
+---
 
-interface gigabitEthernet 0/0.10
-description GATEWAY_VLAN10_STUDENTI
-encapsulation dot1Q 10
-ip address 192.168.10.1 255.255.255.0
-exit
+Attivazione interfaccia fisica trunk
 
-interface gigabitEthernet 0/0.20
-description GATEWAY_VLAN20_DOCENTI
-encapsulation dot1Q 20
-ip address 192.168.20.1 255.255.255.0
-exit
+Questa è l’interfaccia fisica collegata allo switch.
+Non riceve direttamente un indirizzo IP perché gli IP vengono configurati sulle subinterfacce.
 
-interface gigabitEthernet 0/0.30
-description GATEWAY_VLAN30_SERVER
-encapsulation dot1Q 30
-ip address 192.168.30.1 255.255.255.0
-exit
+<Terminal code="
+Router(config)# interface gigabitEthernet 0/0
+Router(config-if)# description LINK_TRUNK_VERSO_SW1
+Router(config-if)# no shutdown
+Router(config-if)# exit
+"/>
 
-end
-write memory" />
+---
+
+Subinterfaccia per VLAN 10 - STUDENTI
+
+Questa subinterfaccia sarà il gateway della VLAN 10
+
+**`Gateway VLAN 10: 192.168.10.1`**
+**`Subnet mask:     255.255.255.0`**
+
+<Terminal code="
+Router(config)# interface gigabitEthernet 0/0.10
+Router(config-subif)# description GATEWAY_VLAN10_STUDENTI
+Router(config-subif)# encapsulation dot1Q 10
+Router(config-subif)# ip address 192.168.10.1 255.255.255.0
+Router(config-subif)# exit
+"/>
+
+---
+
+Subinterfaccia per VLAN 20 - DOCENTI
+
+Questa subinterfaccia sarà il gateway della VLAN 20.
+
+**`Gateway VLAN 20: 192.168.20.1`**
+**`Subnet mask:     255.255.255.0`**
+
+<Terminal code="
+Router(config)# interface gigabitEthernet 0/0.20
+Router(config-subif)# description GATEWAY_VLAN20_DOCENTI
+Router(config-subif)# encapsulation dot1Q 20
+Router(config-subif)# ip address 192.168.20.1 255.255.255.0
+Router(config-subif)# exit
+"/>
+
+---
+
+Questa subinterfaccia sarà il gateway della VLAN 30.
+
+**`Gateway VLAN 30: 192.168.30.1`**
+**`Subnet mask:     255.255.255.0`**
+
+<Terminal code="
+Subinterfaccia per VLAN 30 - SERVER
+Router(config)# interface gigabitEthernet 0/0.30
+Router(config-subif)# description GATEWAY_VLAN30_SERVER
+Router(config-subif)# encapsulation dot1Q 30
+Router(config-subif)# ip address 192.168.30.1 255.255.255.0
+Router(config-subif)# exit
+"/>
+
+---
+
+Uscita e salvataggio
+
+<Terminal code="
+Router(config)# end
+Router# write memory
+"/>
 
 </StepCard>
 
@@ -1078,43 +1171,109 @@ Il motivo è semplice: tutto il traffico tra VLAN deve passare attraverso una si
 
 Una soluzione più scalabile è usare uno switch Layer 3.
 
-In questo caso, il routing tra VLAN viene fatto direttamente dallo switch tramite interfacce virtuali chiamate **SVI**, cioè **Switch Virtual Interface**.
+In questo caso, il routing tra VLAN viene fatto direttamente dallo switch tramite interfacce virtuali chiamate **`SVI`**, cioè **`Switch Virtual Interface`**.
 
 Esempio:
 
-<Terminal code="Switch# configure terminal
+<Terminal code=" 
+Switch> enable
+Switch# configure terminal
+"/>
 
-vlan 10
-name STUDENTI
-exit
+---
 
-vlan 20
-name DOCENTI
-exit
+Creazione VLAN
 
-vlan 30
-name SERVER
-exit
+<Terminal code=" 
+Switch(config)# vlan 10
+Switch(config-vlan)# name STUDENTI
+Switch(config-vlan)# exit
+"/>
 
-ip routing
+<Terminal code=" 
+Switch(config)# vlan 20
+Switch(config-vlan)# name DOCENTI
+Switch(config-vlan)# exit
+"/>
 
-interface vlan 10
-description GATEWAY_VLAN10_STUDENTI
-ip address 192.168.10.1 255.255.255.0
-no shutdown
-exit
+<Terminal code=" 
+Switch(config)# vlan 30
+Switch(config-vlan)# name SERVER
+Switch(config-vlan)# exit
+"/>
 
-interface vlan 20
-description GATEWAY_VLAN20_DOCENTI
-ip address 192.168.20.1 255.255.255.0
-no shutdown
-exit
+---
 
-interface vlan 30
-description GATEWAY_VLAN30_SERVER
-ip address 192.168.30.1 255.255.255.0
-no shutdown
-exit" />
+Abilitazione routing Layer 3
+
+Questo comando abilita lo switch a fare routing tra reti diverse, quindi tra VLAN diverse.
+Senza questo comando, le interfacce VLAN possono avere un IP, ma lo switch non inoltra traffico tra VLAN.
+
+<Terminal code="
+Switch(config)# ip routing
+"/>
+
+---
+
+Gateway VLAN 10 - STUDENTI
+
+Questa interfaccia VLAN sarà il gateway per i dispositivi della VLAN 10.
+
+**`Gateway VLAN 10: 192.168.10.1`**
+**`Subnet mask:     255.255.255.0`**
+
+<Terminal code=" 
+Switch(config)# interface vlan 10
+Switch(config-if)# description GATEWAY_VLAN10_STUDENTI
+Switch(config-if)# ip address 192.168.10.1 255.255.255.0
+Switch(config-if)# no shutdown
+Switch(config-if)# exit
+"/>
+
+---
+
+Gateway VLAN 20 - DOCENTI
+
+Questa interfaccia VLAN sarà il gateway per i dispositivi della VLAN 20.
+
+**`Gateway VLAN 20: 192.168.20.1`**
+**`Subnet mask:     255.255.255.0`**
+
+<Terminal code=" 
+Switch(config)# interface vlan 20
+Switch(config-if)# description GATEWAY_VLAN20_DOCENTI
+Switch(config-if)# ip address 192.168.20.1 255.255.255.0
+Switch(config-if)# no shutdown
+Switch(config-if)# exit
+"/>
+
+---
+
+Gateway VLAN 30 - SERVER
+
+Questa interfaccia VLAN sarà il gateway per i dispositivi della VLAN 30
+
+**`Gateway VLAN 30: 192.168.30.1`**
+**`Subnet mask:     255.255.255.0`**
+
+<Terminal code=" 
+Switch(config)# interface vlan 30
+Switch(config-if)# description GATEWAY_VLAN30_SERVER
+Switch(config-if)# ip address 192.168.30.1 255.255.255.0
+Switch(config-if)# no shutdown
+Switch(config-if)# exit
+"/>
+
+---
+
+Uscita e salvataggio
+
+<Terminal code="
+Switch(config)# end
+Switch# write memory
+"/>
+
+
 
 Spiegazione dei comandi principali:
 

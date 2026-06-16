@@ -1,0 +1,1124 @@
+---
+title: "Nmap: Network Scanning e Service Discovery"
+coverImage: /images/nmap.png
+date: "16-06-2026"
+author: "ChrisMann"
+tech: "NETWORKING"
+difficulty: "MEDIUM"
+excerpt: "Lab completo su Nmap: cos'è, come si usa, come leggere i risultati."
+tags: ["NMAP", "NETWORKING", "LINUX",]
+---
+
+Nmap è uno degli strumenti più importanti per chi studia networking, Linux, cybersecurity e troubleshooting.
+
+Il suo nome significa **Network Mapper** e il suo scopo principale è aiutare a capire quali host sono attivi in una rete, quali porte espongono servizi, quali protocolli rispondono e quali informazioni tecniche possono essere raccolte in modo controllato.
+
+In questo laboratorio useremo Nmap in un contesto didattico e autorizzato, analizzando i comandi più utili, il significato degli output e gli errori più comuni.
+
+<Warning>
+
+Usa Nmap solo su sistemi, reti e ambienti per cui hai autorizzazione esplicita.
+
+Una scansione non autorizzata può essere considerata attività ostile, può generare alert di sicurezza e può violare policy aziendali o normative.
+
+</Warning>
+
+
+
+<SectionTitle>Scenario del Laboratorio</SectionTitle>
+
+
+Immaginiamo una piccola rete di laboratorio composta da un PC amministrativo Linux, alcuni host client, un server e un router.
+
+L'obiettivo è usare Nmap per rispondere a domande pratiche:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>Quali host sono raggiungibili?</li>
+  <li>Quali porte TCP sono aperte?</li>
+  <li>Quali servizi rispondono su quelle porte?</li>
+  <li>Che differenza c'è tra porta aperta, chiusa e filtrata?</li>
+  <li>Come salvo i risultati di una scansione?</li>
+  <li>Come uso gli script NSE in modo controllato?</li>
+  <li>Come interpreto i risultati senza saltare a conclusioni sbagliate?</li>
+</ul>
+
+
+
+<Diagram code="
+graph TD
+    Analyst[PC Linux con Nmap] --> Router[Router o Gateway]
+    Router --> ClientA[Client 192.168.1.20]
+    Router --> Server[Server 192.168.1.50]
+    Router --> ClientB[Client 192.168.1.70]
+    Server --> SSH[SSH 22]
+    Server --> HTTP[HTTP 80]
+    Server --> DB[Database interno]
+"/>
+
+<Info>
+
+Nmap non è solo uno strumento di sicurezza.
+
+È utile anche per amministratori di sistema, tecnici di rete e studenti che vogliono capire cosa sta realmente ascoltando in una rete.
+
+</Info>
+
+
+
+<SectionTitle>Obiettivi del Lab</SectionTitle>
+
+
+
+Al termine del laboratorio sarai in grado di:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>Spiegare cos'è Nmap e a cosa serve</li>
+  <li>Installare Nmap su Linux</li>
+  <li>Distinguere host discovery, port scanning e service detection</li>
+  <li>Eseguire scansioni TCP SYN, TCP connect e UDP</li>
+  <li>Interpretare gli stati delle porte</li>
+  <li>Usare opzioni come <strong>-sV</strong>, <strong>-O</strong>, <strong>-A</strong>, <strong>-p</strong>, <strong>-Pn</strong> e <strong>-oA</strong></li>
+  <li>Usare gli script NSE con criterio</li>
+  <li>Salvare e confrontare risultati</li>
+  <li>Riconoscere limiti, falsi positivi e problemi causati da firewall</li>
+  <li>Applicare buone pratiche etiche e operative</li>
+</ul>
+
+
+
+
+
+<SectionTitle>Prerequisiti</SectionTitle>
+
+
+
+Per seguire bene questo lab dovresti conoscere almeno:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>Indirizzi IPv4 e subnet mask</li>
+  <li>Differenza tra TCP e UDP</li>
+  <li>Concetto di porta di rete</li>
+  <li>Firewall e filtraggio base</li>
+  <li>Comandi Linux essenziali</li>
+  <li>Differenza tra client e server</li>
+  <li>Uso base del terminale</li>
+</ul>
+
+
+
+<Note>
+
+**Nota didattica:**
+Questo lab è pensato per studenti di networking, Linux, cybersecurity e troubleshooting.
+
+L'obiettivo non è "lanciare comandi a caso", ma capire cosa Nmap sta chiedendo alla rete e come leggere le risposte.
+
+</Note>
+
+
+
+<SectionTitle>Cos'è Nmap</SectionTitle>
+
+
+
+Nmap è uno scanner di rete open source.
+
+Può essere usato per scoprire host attivi, verificare porte aperte, identificare servizi, stimare il sistema operativo remoto e lanciare script di controllo tramite il motore NSE, cioè Nmap Scripting Engine.
+
+Una scansione Nmap può aiutare in attività come:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>Inventario degli asset di rete</li>
+  <li>Verifica di servizi esposti</li>
+  <li>Troubleshooting di connettività</li>
+  <li>Controllo di configurazioni firewall</li>
+  <li>Audit difensivo di sistemi autorizzati</li>
+  <li>Studio pratico di TCP, UDP e servizi applicativi</li>
+</ul>
+
+
+
+<Info>
+
+Nmap non "entra" automaticamente nei sistemi.
+
+Interroga la rete e osserva le risposte. La qualità dell'analisi dipende da come viene configurata la scansione e da come vengono interpretati i risultati.
+
+</Info>
+
+
+
+<SectionTitle>Concetti Fondamentali</SectionTitle>
+
+
+Prima di usare Nmap bisogna distinguere tre fasi:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li><strong>Host discovery:</strong> capire quali indirizzi IP sembrano attivi.</li>
+  <li><strong>Port scanning:</strong> capire quali porte rispondono su un host.</li>
+  <li><strong>Service detection:</strong> provare a identificare servizio e versione dietro una porta.</li>
+</ul>
+
+
+Quando Nmap analizza una porta, può restituire stati diversi:
+
+
+<div className="table-container">
+  <table className="my-custom-table">
+    <thead>
+      <tr>
+        <th>Stato</th>
+        <th>Significato</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>open</td>
+        <td>Risponde e un servizio sembra in ascolto.</td>
+      </tr>
+      <tr>
+        <td>closed</td>
+        <td>Risponde, ma nessun servizio ascolta su quella porta.</td>
+      </tr>
+      <tr>
+        <td>filtered</td>
+        <td>Un firewall o filtro blocca la risposta.</td>
+      </tr>
+      <tr>
+        <td>open|filtered</td>
+        <td>La porta potrebbe essere aperta oppure filtrata.</td>
+      </tr>
+      <tr>
+        <td>unfiltered</td>
+        <td>Non riesce a stabilire se sia aperta o chiusa.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<Warning>
+
+Non interpretare una porta filtrata come sicuramente aperta.
+
+Lo stato **filtered** indica incertezza causata da filtri, firewall, ACL o assenza di risposta.
+
+</Warning>
+
+
+
+<StepCard label="A" title="Installare Nmap">
+
+Su Debian e Ubuntu:
+
+<Terminal code="
+sudo apt update
+sudo apt install nmap -y
+" />
+
+Su Fedora:
+
+<Terminal code="
+sudo dnf install nmap -y
+" />
+
+Su Rocky Linux o AlmaLinux:
+
+<Terminal code="
+sudo dnf install nmap -y
+" />
+
+Verifichiamo la versione installata:
+
+<Terminal code="
+nmap --version
+" />
+
+<Info>
+
+Alcune scansioni avanzate richiedono privilegi amministrativi, perché Nmap deve creare pacchetti raw.
+
+Quando non ha permessi sufficienti, Nmap può scegliere automaticamente tecniche meno avanzate, come TCP connect scan.
+
+</Info>
+
+</StepCard>
+
+
+
+<StepCard label="B" title="Identificare la rete locale">
+
+Prima di scansionare, dobbiamo sapere qual è la rete di laboratorio.
+
+Mostriamo gli indirizzi IP del nostro host:
+
+<Terminal code="
+ip address
+" />
+
+Mostriamo le rotte:
+
+<Terminal code="
+ip route
+" />
+
+Output di esempio:
+
+<Terminal code="
+default via 192.168.1.1 dev eth0
+192.168.1.0/24 dev eth0 proto kernel scope link src 192.168.1.10
+" />
+
+In questo esempio la rete locale è:
+
+<Terminal code="
+192.168.1.0/24
+" />
+
+<Note>**Esempio simulato:**
+Gli indirizzi usati in questo lab sono esempi.
+Sostituiscili con la rete del tuo laboratorio autorizzato.</Note>
+
+</StepCard>
+
+
+
+<StepCard label="C" title="Scoprire host attivi con ping scan">
+
+Una prima scansione leggera serve a capire quali host sembrano attivi.
+
+<Terminal code="
+nmap -sn 192.168.1.0/24
+" />
+
+L'opzione `-sn` esegue host discovery senza fare port scan.
+
+Output di esempio:
+
+<Terminal code="
+Nmap scan report for 192.168.1.1
+Host is up (0.0020s latency).
+
+Nmap scan report for 192.168.1.20
+Host is up (0.0031s latency).
+
+Nmap scan report for 192.168.1.50
+Host is up (0.0018s latency).
+" />
+
+<Warning>
+
+Un host può essere attivo anche se non risponde al ping.
+
+Firewall, ACL o configurazioni host possono bloccare ICMP e alcune sonde di discovery.
+
+</Warning>
+
+</StepCard>
+
+
+
+<StepCard label="D" title="Scansione base di un singolo host">
+
+Eseguiamo una scansione standard su un host del laboratorio.
+
+<Terminal code="
+nmap 192.168.1.50
+" />
+
+Output di esempio:
+
+<Terminal code="
+PORT   STATE SERVICE
+22/tcp open  ssh
+80/tcp open  http
+443/tcp open https
+" />
+
+Nmap, di default, scansiona un insieme di porte TCP comuni.
+
+Non scansiona tutte le `65535` porte TCP se non glielo chiediamo esplicitamente.
+
+<Info>
+
+Il nome nella colonna `SERVICE` è spesso dedotto dal numero di porta.
+
+Per identificare davvero il servizio e la versione serve la service detection con `-sV`.
+
+</Info>
+
+</StepCard>
+
+
+
+<StepCard label="E" title="Scansione TCP SYN">
+
+La TCP SYN scan è una delle tecniche più usate.
+
+Richiede privilegi amministrativi.
+
+<Terminal code="
+sudo nmap -sS 192.168.1.50
+" />
+
+Con `-sS`, Nmap invia pacchetti SYN e analizza le risposte.
+
+In modo semplificato:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>`SYN/ACK` indica spesso porta aperta.</li>
+  <li>`RST` indica spesso porta chiusa.</li>
+  <li>Nessuna risposta o messaggi filtrati indicano possibile filtering.</li>
+</ul>
+
+<Note>La TCP SYN scan è spesso chiamata anche "half-open scan", perché non completa una normale connessione TCP applicativa.</Note>
+
+</StepCard>
+
+
+
+<StepCard label="F" title="Scansione TCP connect">
+
+Quando Nmap non ha privilegi per usare pacchetti raw, può usare una TCP connect scan.
+
+<Terminal code="
+nmap -sT 192.168.1.50
+" />
+
+Questa tecnica usa la normale chiamata di sistema per aprire una connessione TCP.
+
+È più semplice da eseguire, ma può essere più visibile nei log applicativi perché completa la connessione.
+
+<Info>
+
+Se lanci Nmap senza sudo su Linux, spesso userà automaticamente TCP connect scan per le porte TCP.
+
+</Info>
+
+</StepCard>
+
+
+
+<StepCard label="G" title="Scansionare porte specifiche">
+
+Possiamo limitare la scansione a una porta:
+
+<Terminal code="
+nmap -p 22 192.168.1.50
+" />
+
+Oppure a più porte:
+
+<Terminal code="
+nmap -p 22,80,443 192.168.1.50
+" />
+
+Possiamo indicare un range:
+
+<Terminal code="
+nmap -p 1-1024 192.168.1.50
+" />
+
+Per scansionare tutte le porte TCP:
+
+<Terminal code="
+nmap -p- 192.168.1.50
+" />
+
+<Warning>
+
+Una scansione di tutte le porte richiede più tempo e genera più traffico.
+
+In ambienti aziendali va pianificata, autorizzata e comunicata.
+
+</Warning>
+
+</StepCard>
+
+
+
+<StepCard label="H" title="Identificare servizio e versione">
+
+Per capire meglio cosa risponde su una porta, usiamo `-sV`.
+
+<Terminal code="
+nmap -sV 192.168.1.50
+" />
+
+Output di esempio:
+
+<Terminal code="
+PORT    STATE SERVICE  VERSION
+22/tcp  open  ssh      OpenSSH 9.6p1 Ubuntu
+80/tcp  open  http     nginx 1.24.0
+443/tcp open  ssl/http nginx 1.24.0
+" />
+
+<Info>
+La versione rilevata non è sempre garantita al 100%.
+
+Banner modificati, proxy, firewall applicativi o configurazioni personalizzate possono rendere il risultato incompleto o impreciso.
+
+</Info>
+
+</StepCard>
+
+
+
+<StepCard label="I" title="Stimare il sistema operativo">
+
+Nmap può provare a stimare il sistema operativo remoto.
+
+<Terminal code="
+sudo nmap -O 192.168.1.50
+" />
+
+Questa tecnica osserva dettagli delle risposte TCP/IP e li confronta con un database di fingerprint.
+
+<Warning>
+
+L'OS detection è una stima, non una verità assoluta.
+
+Firewall, NAT, virtualizzazione e sistemi molto simili possono influenzare il risultato.
+
+</Warning>
+
+</StepCard>
+
+
+
+<StepCard label="J" title="Usare la scansione aggressiva con criterio">
+
+L'opzione **`-A`** abilita diverse funzioni insieme:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>OS detection</li>
+  <li>Version detection</li>
+  <li>Script scanning predefinito</li>
+  <li>Traceroute</li>
+</ul>
+
+<Terminal code="
+sudo nmap -A 192.168.1.50
+" />
+
+<Warning>
+
+La scansione **`-A`** è più rumorosa e invasiva rispetto a una scansione base.
+
+Usala solo quando serve davvero e sempre in ambiente autorizzato.
+
+</Warning>
+
+</StepCard>
+
+
+
+<StepCard label="K" title="Forzare la scansione quando il ping è bloccato">
+
+Se un host non risponde alla fase di discovery, Nmap potrebbe considerarlo offline.
+
+Possiamo dire a Nmap di saltare l'host discovery e scansionare comunque:
+
+<Terminal code="
+nmap -Pn 192.168.1.50
+" />
+
+**`-Pn`** significa: tratta l'host come attivo e prova la scansione delle porte.
+
+<Info>
+
+Questa opzione è utile quando ICMP o altre sonde di discovery sono filtrate.
+
+Può però rallentare molto le scansioni su range grandi, perché Nmap proverà ogni host come se fosse attivo.
+
+</Info>
+
+</StepCard>
+
+
+
+<StepCard label="L" title="Scansione UDP">
+
+UDP è più difficile da scansionare rispetto a TCP, perché molti servizi UDP non rispondono se la richiesta non è nel formato corretto.
+
+Una scansione UDP base:
+
+<Terminal code="
+sudo nmap -sU 192.168.1.50
+" />
+
+Scansione UDP su porte specifiche:
+
+<Terminal code="
+sudo nmap -sU -p 53,67,68,123,161 192.168.1.50
+" />
+
+Porte UDP comuni:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>`53` DNS</li>
+  <li>`67/68` DHCP</li>
+  <li>`123` NTP</li>
+  <li>`161` SNMP</li>
+  <li>`500` IKE</li>
+</ul>
+
+<Warning>
+
+Gli stati UDP **`open|filtered`** sono comuni.
+
+Significano che Nmap non ha ricevuto abbastanza informazioni per distinguere una porta aperta da una porta filtrata.
+
+</Warning>
+
+</StepCard>
+
+
+
+<StepCard label="M" title="Salvare i risultati">
+
+Per lavorare in modo professionale bisogna salvare i risultati.
+
+Creiamo una directory:
+
+<Terminal code="
+mkdir -p scans
+" />
+
+Salviamo in formato normale:
+
+<Terminal code="
+nmap -sV -oN scans/server_scan.txt 192.168.1.50
+" />
+
+Salviamo in formato XML:
+
+<Terminal code="
+nmap -sV -oX scans/server_scan.xml 192.168.1.50
+" />
+
+Salviamo nei principali formati con **`-oA`**:
+
+<Terminal code="
+nmap -sV -oA scans/server_scan 192.168.1.50
+" />
+
+Questo genera file simili a:
+
+<Terminal code="
+server_scan.nmap
+server_scan.xml
+server_scan.gnmap
+" />
+
+<Note>Il formato XML è utile per integrazioni, report automatici e analisi successive.
+Il formato normale è più comodo da leggere rapidamente.</Note>
+
+</StepCard>
+
+
+
+<StepCard label="N" title="Scansionare una rete con output salvato">
+
+Eseguiamo una scansione della rete di laboratorio e salviamo i risultati.
+
+<Terminal code="
+nmap -sV -oA scans/lab_network 192.168.1.0/24
+" />
+
+Se vogliamo prima fare solo discovery:
+
+<Terminal code="
+nmap -sn -oA scans/lab_discovery 192.168.1.0/24
+" />
+
+<Info>
+
+Separare discovery e port scanning aiuta a lavorare con metodo:
+
+prima identifichi gli host, poi approfondisci quelli rilevanti.
+
+</Info>
+
+</StepCard>
+
+
+
+<StepCard label="O" title="Usare il timing template">
+
+Nmap permette di regolare la velocità con i timing template.
+
+Esempio più prudente:
+
+<Terminal code="
+nmap -T2 192.168.1.50
+" />
+
+Esempio più rapido in rete locale:
+
+<Terminal code="
+nmap -T4 192.168.1.50
+" />
+
+I valori vanno da **`-T0`** a **`-T5`**.
+
+<ul className="list-disc pl-6 space-y-1">
+  <li><strong>`-T0`</strong> e <strong>-T1</strong>: molto lenti.</li>
+  <li><strong>`-T2`</strong>: conservativo.</li>
+  <li><strong>`-T3`</strong>: default.</li>
+  <li><strong>`-T4`</strong>: rapido, spesso adatto a LAN affidabili.</li>
+  <li><strong>`-T5`</strong>: molto aggressivo, può causare risultati meno affidabili.</li>
+</ul>
+
+<Warning>
+
+Velocità maggiore non significa qualità maggiore.
+
+Scansioni troppo aggressive possono perdere risultati, saturare apparati fragili o generare molti alert.
+
+</Warning>
+
+</StepCard>
+
+
+
+<StepCard label="P" title="Usare Nmap Scripting Engine">
+
+NSE, cioè Nmap Scripting Engine, permette di eseguire script per raccogliere informazioni aggiuntive o fare controlli specifici.
+
+Elenco delle categorie più importanti:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li><strong>`default`</strong>: script generalmente sicuri e usati con scansioni standard.</li>
+  <li><strong>`safe`</strong>: script progettati per essere poco invasivi.</li>
+  <li><strong>`discovery`</strong>: raccolta informazioni e discovery.</li>
+  <li><strong>`version`</strong>: supporto alla rilevazione versioni.</li>
+  <li><strong>`vuln`</strong>: controlli di vulnerabilità noti.</li>
+  <li><strong>`intrusive`</strong>: script più invasivi, da usare con grande attenzione.</li>
+</ul>
+
+Usiamo gli script safe:
+
+<Terminal code="
+nmap --script safe 192.168.1.50
+" />
+
+Usiamo uno script specifico per HTTP title:
+
+<Terminal code="
+nmap -p 80,443 --script http-title 192.168.1.50
+" />
+
+<Warning>
+
+Non lanciare categorie come **`vuln`** o **`intrusive`** su sistemi non autorizzati.
+
+Anche se Nmap è uno strumento legittimo, alcuni script possono generare traffico sensibile o comportamenti non adatti a produzione.
+
+</Warning>
+
+</StepCard>
+
+
+
+<StepCard label="Q" title="Leggere la documentazione degli script NSE">
+
+Mostriamo gli script disponibili:
+
+<Terminal code="
+ls /usr/share/nmap/scripts
+" />
+
+Cerchiamo script HTTP:
+
+<Terminal code="
+ls /usr/share/nmap/scripts | grep http
+" />
+
+Leggiamo l'help di uno script:
+
+<Terminal code="
+nmap --script-help http-title
+" />
+
+<Info>
+
+Prima di usare uno script NSE, leggi cosa fa, quali argomenti accetta e se è considerato safe, discovery, vuln o intrusive.
+
+</Info>
+
+</StepCard>
+
+
+
+<StepCard label="R" title="Combinare opzioni in una scansione realistica">
+
+Una scansione ragionevole su un singolo server di laboratorio può essere:
+
+<Terminal code="
+sudo nmap -sS -sV -O -p 1-1000 -oA scans/server_base 192.168.1.50
+" />
+
+Significato:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li><strong>`-sS`</strong>: TCP SYN scan.</li>
+  <li><strong>`-sV`</strong>: rilevazione versione servizi.</li>
+  <li><strong>`-O`</strong>: stima sistema operativo.</li>
+  <li><strong>`-p 1-100`0</strong>: porte TCP da 1 a 1000.</li>
+  <li><strong>`-oA`</strong>: output nei principali formati.</li>
+</ul>
+
+Per una scansione più completa delle porte TCP:
+
+<Terminal code="
+sudo nmap -sS -sV -p- -T4 -oA scans/server_all_tcp 192.168.1.50
+" />
+
+<Warning>
+
+Non iniziare sempre con la scansione più pesante.
+
+Parti da una scansione chiara e mirata, poi approfondisci in base ai risultati.
+
+</Warning>
+
+</StepCard>
+
+
+<div className="[&_h2]:mt-20! [&_h2]:bg-[#191919]! [&_h2]:p-4! [&_h2]:border-l-4 [&_h2]:border-emerald-500 [&_h2]:text-emerald-300">
+## Interpretare un Output
+</div>
+
+### Consideriamo questo output simulato:
+
+
+<Terminal code="
+Nmap scan report for 192.168.1.50
+Host is up (0.0021s latency).
+
+PORT    STATE    SERVICE  VERSION
+22/tcp  open     ssh      OpenSSH 9.6p1 Ubuntu
+80/tcp  open     http     nginx 1.24.0
+139/tcp filtered netbios-ssn
+445/tcp filtered microsoft-ds
+" />
+
+
+**Da questo output possiamo ricavare:**
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>L'host risponde ed è raggiungibile.</li>
+  <li>SSH è esposto sulla porta 22.</li>
+  <li>Un server web nginx risponde sulla porta 80.</li>
+  <li>Le porte 139 e 445 non sono necessariamente aperte: risultano filtrate.</li>
+  <li>Serve verificare se SSH e HTTP devono davvero essere esposti in quello scenario.</li>
+</ul>
+
+
+<Info>
+Il lavoro tecnico non finisce con il comando Nmap.
+
+Dopo la scansione bisogna confrontare i risultati con l'architettura attesa, la documentazione e le policy di sicurezza.
+</Info>
+
+
+<div className="[&_h2]:mt-20! [&_h2]:bg-[#191919]! [&_h2]:p-4! [&_h2]:border-l-4 [&_h2]:border-emerald-500 [&_h2]:text-emerald-300">
+## Use Case di Studio
+</div>
+
+<StepCard label="S" title="Verificare servizi esposti su un server Linux">
+
+Obiettivo: capire quali servizi sono raggiungibili da un client della stessa LAN.
+
+<Terminal code="
+nmap -sV -p 22,80,443,3306,5432 192.168.1.50
+" />
+
+Domande da farsi:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>Le porte aperte sono previste?</li>
+  <li>Il database deve essere raggiungibile dalla LAN?</li>
+  <li>Il servizio espone una versione obsoleta?</li>
+  <li>Il firewall sta filtrando le porte non necessarie?</li>
+</ul>
+
+</StepCard>
+
+
+
+<StepCard label="T" title="Verificare una regola firewall">
+
+Scenario: hai configurato un firewall per permettere solo `SSH` e `HTTPS`.
+
+Scansione di controllo:
+
+<Terminal code="
+nmap -sS -p 1-1000 192.168.1.50
+" />
+
+Risultato atteso:
+
+<Terminal code="
+PORT    STATE SERVICE
+22/tcp  open  ssh
+443/tcp open  https
+" />
+
+Se trovi altre porte aperte, devi controllare:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>Regole firewall locali</li>
+  <li>Firewall di rete</li>
+  <li>Servizi in ascolto sul server</li>
+  <li>Container Docker con porte pubblicate</li>
+</ul>
+
+</StepCard>
+
+
+
+<StepCard label="U" title="Trovare servizi web in una subnet">
+
+Scansioniamo solo porte web comuni:
+
+<Terminal code="
+nmap -p 80,443,8080,8443 --open 192.168.1.0/24
+" />
+
+L'opzione **`--open`** mostra principalmente host con porte aperte.
+
+Possiamo aggiungere uno script safe per leggere il titolo HTTP:
+
+<Terminal code="
+nmap -p 80,443,8080,8443 --open --script http-title 192.168.1.0/24
+" />
+
+<Info>
+
+Questo tipo di scansione è utile per inventario interno, troubleshooting e verifica di servizi web dimenticati.
+
+</Info>
+
+</StepCard>
+
+
+<div className="[&_h2]:mt-20! [&_h2]:bg-[#191919]! [&_h2]:p-4! [&_h2]:border-l-4 [&_h2]:border-emerald-500 [&_h2]:text-emerald-300">
+## Troubleshooting
+</div>
+<StepCard label="V" title="Nmap dice host seems down">
+
+Messaggio tipico:
+
+<Terminal code="
+Note: Host seems down. If it is really up, but blocking our ping probes, try -Pn
+" />
+
+Possibili cause:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>Host realmente spento</li>
+  <li>IP errato</li>
+  <li>Firewall che blocca discovery</li>
+  <li>Routing non corretto</li>
+  <li>Subnet sbagliata</li>
+</ul>
+
+Prova:
+
+<Terminal code="
+nmap -Pn 192.168.1.50
+" />
+
+</StepCard>
+
+
+
+<StepCard label="W" title="Tutte le porte risultano filtered">
+
+Se molte porte risultano filtrate, potrebbe esserci un firewall.
+
+Controlli utili dal client:
+
+<Terminal code="
+ping 192.168.1.50
+ip route
+traceroute 192.168.1.50
+" />
+
+Controlli utili sul server Linux:
+
+<Terminal code="
+sudo ss -tulpn
+sudo ufw status numbered
+sudo nft list ruleset
+" />
+
+<Warning>
+
+Non disabilitare firewall o controlli di sicurezza come soluzione rapida.
+
+Verifica prima le regole, capisci il traffico atteso e modifica solo ciò che serve.
+
+</Warning>
+
+</StepCard>
+
+
+
+<StepCard label="X" title="La scansione UDP è molto lenta">
+
+UDP può richiedere molto tempo.
+
+Riduci il numero di porte:
+
+<Terminal code="
+sudo nmap -sU -p 53,123,161 192.168.1.50
+" />
+
+Oppure combina UDP con version detection solo su porte specifiche:
+
+<Terminal code="
+sudo nmap -sU -sV -p 53,123,161 192.168.1.50
+" />
+
+<Info>
+
+La scansione UDP completa su una rete grande può essere molto lenta.
+
+È meglio partire da porte realmente rilevanti per lo scenario.
+
+</Info>
+
+</StepCard>
+
+
+<div className="[&_h2]:mt-20! [&_h2]:bg-[#191919]! [&_h2]:p-4! [&_h2]:border-l-4 [&_h2]:border-emerald-500 [&_h2]:text-emerald-300">
+## Comandi da Ricordare
+</div>
+
+<Terminal code="
+# Host discovery
+nmap -sn 192.168.1.0/24
+
+# Scansione base
+nmap 192.168.1.50
+
+# TCP SYN scan
+sudo nmap -sS 192.168.1.50
+
+# TCP connect scan
+nmap -sT 192.168.1.50
+
+# Porte specifiche
+nmap -p 22,80,443 192.168.1.50
+
+# Tutte le porte TCP
+nmap -p- 192.168.1.50
+
+# Version detection
+nmap -sV 192.168.1.50
+
+# OS detection
+sudo nmap -O 192.168.1.50
+
+# Salvataggio output
+nmap -sV -oA scans/server_scan 192.168.1.50
+
+# Script NSE safe
+nmap --script safe 192.168.1.50
+" />
+
+
+<div className="[&_h2]:mt-20! [&_h2]:bg-[#191919]! [&_h2]:p-4! [&_h2]:border-l-4 [&_h2]:border-emerald-500 [&_h2]:text-emerald-300">
+## Cosa Deve Studiare uno Studente
+</div>
+
+
+
+Per usare Nmap bene non basta memorizzare opzioni.
+
+Uno studente dovrebbe studiare questi argomenti:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>Modello ISO/OSI e TCP/IP</li>
+  <li>Three-way handshake TCP</li>
+  <li>Differenza tra TCP e UDP</li>
+  <li>ICMP e host discovery</li>
+  <li>Subnetting IPv4</li>
+  <li>Routing base</li>
+  <li>Firewall, ACL e NAT</li>
+  <li>Servizi comuni: SSH, HTTP, HTTPS, DNS, SMB, SMTP, SNMP</li>
+  <li>Banner grabbing e limiti dell'identificazione versione</li>
+  <li>Logging lato server</li>
+  <li>Uso responsabile degli strumenti di sicurezza</li>
+  <li>Documentazione tecnica e report dei risultati</li>
+</ul>
+
+
+
+<Note> **Metodo consigliato:**
+Per ogni porta trovata aperta, chiediti sempre:
+che servizio è, perché è esposto, chi deve raggiungerlo, è protetto da firewall, è aggiornato, è documentato?</Note>
+
+
+<div className="[&_h2]:mt-20! [&_h2]:bg-[#191919]! [&_h2]:p-4! [&_h2]:border-l-4 [&_h2]:border-emerald-500 [&_h2]:text-emerald-300">
+## Errori Comuni da Evitare
+</div>
+
+<Warning>
+
+Non scansionare reti non autorizzate.
+
+</Warning>
+
+<Warning>
+
+Non considerare Nmap una prova assoluta.
+
+I risultati vanno sempre verificati con log, configurazioni, firewall e documentazione.
+
+</Warning>
+
+<Warning>
+
+Non usare sempre **`-A`**, **`--script vuln`** o scansioni aggressive senza motivo tecnico.
+
+</Warning>
+
+<Warning>
+
+Non confondere una porta **`filtered`** con una porta sicuramente aperta.
+
+</Warning>
+
+<Warning>
+
+Non pubblicare report con IP, hostname, versioni e servizi reali se contengono informazioni sensibili.
+
+</Warning>
+
+
+<div className="[&_h2]:mt-20! [&_h2]:bg-[#191919]! [&_h2]:p-4! [&_h2]:border-l-4 [&_h2]:border-emerald-500 [&_h2]:text-emerald-300">
+## Conclusione
+</div>
+
+
+Nmap è uno strumento fondamentale perché collega teoria e pratica.
+
+Permette di vedere come una rete risponde davvero: host attivi, servizi esposti, porte filtrate, differenze tra TCP e UDP, effetti dei firewall e informazioni raccolte dai servizi applicativi.
+
+Usato bene, Nmap aiuta a fare inventario, troubleshooting, hardening e studio dei protocolli.
+
+Usato male, produce rumore, risultati interpretati male e potenziali problemi di policy.
+
+
+
+<Info>
+La competenza importante non è conoscere un singolo comando.
+
+La competenza importante è saper scegliere la scansione giusta, leggere il risultato con spirito critico e trasformarlo in una decisione tecnica corretta.
+
+</Info>
+
