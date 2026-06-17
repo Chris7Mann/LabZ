@@ -52,7 +52,9 @@ Router(config-router)# network 20.0.0.0 0.0.0.255 area 0 "/>
 <StepCard label="D" title="Spiegazione dei parametri">
 <Note>
 **router ospf 1:** Il numero "1" è l'ID del processo. Deve essere lo stesso su tutti i router per semplicità, ma tecnicamente potrebbe anche variare.
+
 **network [indirizzo] [wildcard_mask]:** OSPF non usa la maschera di sottorete classica, ma la Wildcard Mask (l'inverso della subnet mask). Per una /24 (255.255.255.0), la wildcard è 0.0.0.255.
+
 **area 0:** OSPF organizza i router in aree. L'area 0 è la "Backbone" (colonna vertebrale) ed è obbligatoria.
 </Note>
 

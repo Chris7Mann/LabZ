@@ -1,5 +1,6 @@
-import {SectionTitle} from "../../components/mdx/SectionTitle";
 import Breadcrumb from "@/components/Breadcrumb";
+import ContactForm from "@/components/ContactForm";
+
 export default function SystemPage() {
   return (
     <main className="min-h-screen bg-black text-zinc-300 py-20 px-4 sm:px-6 lg:px-8">
@@ -61,6 +62,21 @@ export default function SystemPage() {
             Il laboratorio non è solo un passatempo, è la mia palestra. Qui testo in ambienti isolati le configurazioni che poi porto nel mondo reale. 
             Dall'automazione dei servizi con Docker al monitoraggio costante della rete, ogni tecnologia che citi in questo sito è stata "spaccata" e ricostruita più volte nel mio ambiente virtualizzato.
           </p>
+        </section>
+
+        {/* Modulo contatti */}
+        <section className="mt-20 border-t border-zinc-800 pt-12">
+          <div className="mb-8">
+            <p className="font-mono text-xs uppercase tracking-[0.3em] text-emerald-400 mb-3">
+              CONTACT_CHANNEL
+            </p>
+            <h3 className="text-3xl font-bold text-white mb-4">Parliamo di infrastrutture, lab e progetti IT.</h3>
+            <p className="text-zinc-400 leading-relaxed">
+              Se vuoi condividere un&apos;idea, proporre una collaborazione o chiedere informazioni sui contenuti tecnici di LabZ, puoi inviarmi un messaggio da qui.
+            </p>
+          </div>
+
+          <ContactForm />
         </section>
       </div>
     </main>

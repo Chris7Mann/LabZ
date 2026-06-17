@@ -17,7 +17,6 @@ In questo laboratorio metteremo in sicurezza l'accesso remoto ad un server Linux
 
 <SectionTitle>Scenario del Laboratorio</SectionTitle>
 
-<Text>
 
 SSH è uno dei servizi più importanti su un server Linux, perché permette l'amministrazione remota del sistema.
 
@@ -27,7 +26,6 @@ Bot automatici, tentativi di brute force, scansioni su Internet e credenziali de
 
 In questo laboratorio configureremo un accesso SSH più sicuro, riducendo la superficie di attacco e migliorando il controllo sugli utenti autorizzati.
 
-</Text>
 
 <Info>
 
@@ -41,13 +39,10 @@ La sicurezza non dipende da una singola impostazione, ma da più livelli di prot
 
 <SectionTitle>Architettura del Lab</SectionTitle>
 
-<Text>
-
 Lo scenario prevede un client amministrativo che accede ad un server Linux tramite SSH.
 
 Il server accetterà solo connessioni controllate, utenti autorizzati e autenticazione tramite chiave pubblica.
 
-</Text>
 
 <Diagram code="
 graph TD
@@ -70,8 +65,6 @@ Se commetti un errore e chiudi la sessione, potresti perdere l'accesso remoto al
 
 <SectionTitle>Obiettivi del Lab</SectionTitle>
 
-<Text>
-
 Al termine del laboratorio sarai in grado di:
 
 <ul className="list-disc pl-6 space-y-1">
@@ -86,13 +79,8 @@ Al termine del laboratorio sarai in grado di:
   <li>Leggere log e diagnosticare problemi di accesso</li>
 </ul>
 
-</Text>
-
-
 
 <SectionTitle>Prerequisiti</SectionTitle>
-
-<Text>
 
 Prima di iniziare dovresti conoscere almeno questi concetti:
 
@@ -105,8 +93,6 @@ Prima di iniziare dovresti conoscere almeno questi concetti:
   <li>Differenza tra chiave pubblica e chiave privata</li>
   <li>Uso base di un editor come nano o vim</li>
 </ul>
-
-</Text>
 
 <Note>
 
@@ -121,8 +107,6 @@ L'approccio sarà pratico, ma ogni modifica verrà spiegata dal punto di vista o
 
 <SectionTitle>Concetto Base: Perché fare SSH Hardening?</SectionTitle>
 
-<Text>
-
 Un server SSH lasciato con configurazione debole può essere esposto a diversi rischi:
 
 <ul className="list-disc pl-6 space-y-1">
@@ -134,14 +118,11 @@ Un server SSH lasciato con configurazione debole può essere esposto a diversi r
   <li>Mancanza di log utili per investigazione</li>
 </ul>
 
-</Text>
-
 <Info>
 
 SSH hardening significa ridurre le possibilità di accesso non autorizzato applicando controlli su autenticazione, utenti, rete, logging e configurazione del servizio.
 
 </Info>
-
 
 
 <StepCard label="A" title="Verifica del servizio SSH">
@@ -724,14 +705,9 @@ Una configurazione errata può applicare restrizioni impreviste agli utenti sbag
 
 <SectionTitle>Troubleshooting</SectionTitle>
 
-<Text>
-
 Quando SSH non funziona, bisogna procedere con metodo.
 
 Questa sezione raccoglie i controlli più importanti per diagnosticare errori di accesso.
-
-</Text>
-
 
 
 <StepCard label="R" title="Errore: Permission denied publickey">
@@ -941,7 +917,6 @@ Controllare Fail2ban:
 
 <SectionTitle>Competenze Acquisite</SectionTitle>
 
-<Text>
 
 Completando questo laboratorio hai configurato un accesso SSH più sicuro su Linux.
 
@@ -960,7 +935,6 @@ Hai lavorato su:
   <li>Troubleshooting degli errori SSH più comuni</li>
 </ul>
 
-</Text>
 
 <Info>
 
@@ -972,7 +946,6 @@ Queste competenze sono fondamentali per amministrazione Linux, cybersecurity, cl
 
 <SectionTitle>Domande di Verifica</SectionTitle>
 
-<Text>
 
 <ol className="list-decimal pl-6 space-y-2">
   <li>Perché è sconsigliato permettere il login diretto come root via SSH?</li>
@@ -985,13 +958,9 @@ Queste competenze sono fondamentali per amministrazione Linux, cybersecurity, cl
   <li>A cosa serve Fail2ban in uno scenario SSH esposto su Internet?</li>
 </ol>
 
-</Text>
-
-
 
 <SectionTitle>Conclusione</SectionTitle>
 
-<Text>
 
 SSH è uno dei servizi più critici in un server Linux.
 
@@ -1000,5 +969,3 @@ Un accesso SSH configurato male può diventare il punto di ingresso principale p
 In questo laboratorio hai applicato un modello di hardening pratico e realistico: autenticazione a chiave, utenti limitati, root login disabilitato, password disattivate, firewall, logging e protezione contro brute force.
 
 Queste configurazioni rappresentano una base solida per gestire server Linux in modo più sicuro, sia in un home lab sia in ambienti professionali.
-
-</Text>

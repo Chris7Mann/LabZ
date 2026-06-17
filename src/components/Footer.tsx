@@ -52,9 +52,9 @@ export default function Footer() {
         <div className="space-y-4">
           <h3 className="text-white font-bold uppercase text-sm tracking-widest">Connect</h3>
           <ul className="space-y-2 text-zinc-500 text-sm">
-            <li><a href="#" className="hover:text-emerald-400 transition-colors">GitHub</a></li>
-            <li><a href="#" className="hover:text-emerald-400 transition-colors">LinkedIn</a></li>
-            <li><a href="mailto:tuo-email@example.com" className="hover:text-emerald-400 transition-colors">Email</a></li>
+            <li><a href="https://github.com/Chris7Mann" target="_blank" className="hover:text-emerald-400 transition-colors">GitHub</a></li>
+            <li><a href="https://www.linkedin.com/in/christian-mannella-091799180/" target="_blank" className="hover:text-emerald-400 transition-colors" >LinkedIn</a></li>
+            <li><a href="mailto:cmannella85@gmail.com" className="hover:text-emerald-400 transition-colors">Email</a></li>
           </ul>
         </div>
       </div>

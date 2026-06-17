@@ -28,14 +28,14 @@ export default function WorkshopsPage() {
             <Link 
               key={lab.slug} 
               href={`/labs/${lab.slug}`}
-              className="group bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden hover:border-emerald-500 transition-all hover:shadow-[0_0_20px_-5px_rgba(16,185,129,0.3)] block"
+              className="group bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden hover:border-emerald-500 transition-all hover:shadow-[0_0_20px_-5px_rgba(16,185,129,0.3)] block"
             >
               {/* Area Immagine */}
-              <div className="h-48 w-full overflow-hidden bg-zinc-950">
+              <div className="h-40 w-full overflow-hidden bg-zinc-950">
                 <img 
                   src={lab.coverImage || "/images/default-lab.jpg"} 
                   alt={lab.title} 
-                  className="iubenda-no-cmp w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
               </div>
 

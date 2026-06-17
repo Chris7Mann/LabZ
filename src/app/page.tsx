@@ -4,7 +4,7 @@ import About from "@/components/About";
 import FeaturedArticles from '@/components/FeaturedArticles';
 import RecentArticles from '@/components/RecentArticles';
 import MarqueeBar from '@/components/MarqueeBar';
-import Footer from "@/components/Footer";
+// import Footer from "@/components/Footer";
 import ArchitecturalBlueprint from '@/components/ArchitecturalBlueprint';
 
 export default function Home() {
@@ -17,7 +17,7 @@ export default function Home() {
       <FeaturedArticles />
       <RecentArticles />
       <MarqueeBar />
-      <Footer />
+      {/* <Footer /> */}
     </main>
   );
 }

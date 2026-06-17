@@ -21,7 +21,7 @@ export default async function TagPage({ params }: { params: Promise<{ tag: strin
     });
 
     return (
-        <main className="min-h-screen bg-black py-24">
+        <main className="min-h-screen py-24">
             <section className="max-w-5xl mx-auto px-8">
                 <Breadcrumb items={[
                     { label: "HOME", href: "/" },
@@ -63,7 +63,7 @@ export default async function TagPage({ params }: { params: Promise<{ tag: strin
                                 )}
 
                                 {/* Padding spostato qui per gestire il contenuto sotto l'immagine */}
-                                <div className="p-6 flex flex-col flex-grow gap-4">
+                                <div className="p-6 flex flex-col grow gap-4">
                                     <h3 className="text-white font-bold group-hover:text-emerald-400 transition-colors">
                                         {article.title}
                                     </h3>

@@ -2,6 +2,7 @@ import Navbar from "@/components/Navbar";
 import BackToTop from "@/components/BackToTop";
 import "./globals.css";
 import Script from "next/script";
+import Footer from "@/components/Footer"
 
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -16,7 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <main className="grow pb-16">{children}
               <BackToTop />
             </main>
-            
+            <Footer />
           </div>
         </body>
     </html>
