@@ -22,11 +22,11 @@ export default async function TagPage({ params }: { params: Promise<{ tag: strin
     });
 
     return (
-        <main className="min-h-screen py-24">
+        <main className="min-h-screen py-24 bg-black">
             <section className="max-w-5xl mx-auto px-8">
                 <Breadcrumb items={[
                     { label: "HOME", href: "/" },
-                    { label: "WORKSHOPS", href: "/workshops" }, // Oppure dove preferisci
+                    { label: "WORKSHOPS", href: "/workshops" },
                     { label: tag.toUpperCase(), href: "#" }
                 ]} />
 

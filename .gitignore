@@ -32,6 +32,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+.env.*
+.env.local
+*.key
 
 # vercel
 .vercel
@@ -41,7 +44,6 @@ yarn-error.log*
 next-env.d.ts
 
 # Configurazione
-.env.local
 docker/
 nginx/
 Dockerfile
