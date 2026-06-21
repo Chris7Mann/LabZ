@@ -1,6 +1,12 @@
 import Link from 'next/link';
 
-export function SimilarPosts({ posts }: { posts: any[] }) {
+type SimilarPost = {
+  slug: string;
+  title?: string;
+  date?: string;
+};
+
+export function SimilarPosts({ posts }: { posts: SimilarPost[] }) {
   return (
     <div className="mt-16">
       <h3 className="text-xl font-bold text-white mb-6 border-b border-zinc-800 pb-2">Similar Posts</h3>

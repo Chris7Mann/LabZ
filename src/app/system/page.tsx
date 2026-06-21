@@ -1,5 +1,6 @@
 import Breadcrumb from "@/components/Breadcrumb";
 import ContactForm from "@/components/ContactForm";
+import Image from "next/image";
 
 export default function SystemPage() {
   return (
@@ -18,19 +19,20 @@ export default function SystemPage() {
         {/* Sezione About Us con foto */}
         <section className="grid md:grid-cols-2 gap-12 items-center mb-20">
           <div>
-            <h2 className="text-3xl font-bold text-white mb-6">Dall'assistenza umana alla gestione dei sistemi.</h2>
+            <h2 className="text-3xl font-bold text-white mb-6">Dall&apos;assistenza umana alla gestione dei sistemi.</h2>
             <p className="mb-4 text-zinc-400">
-              Il mio percorso professionale inizia nel mondo sanitario come OSS. Questa esperienza mi ha insegnato la precisione, la responsabilità e l'importanza di gestire situazioni critiche con calma.
+              Il mio percorso professionale inizia nel mondo sanitario come OSS. Questa esperienza mi ha insegnato la precisione, la responsabilità e l&apos;importanza di gestire situazioni critiche con calma.
             </p>
             <p className="text-zinc-400">
-              Oggi, quella stessa attitudine la applico all'architettura delle reti e all'infrastruttura IT. Gestire un server o configurare una VLAN richiede la stessa dedizione nel risolvere problemi che prima dedicavo alle persone.
+              Oggi, quella stessa attitudine la applico all&apos;architettura delle reti e all&apos;infrastruttura IT. Gestire un server o configurare una VLAN richiede la stessa dedizione nel risolvere problemi che prima dedicavo alle persone.
             </p>
           </div>
           <div className="rounded-2xl overflow-hidden border border-zinc-800 shadow-2xl">
-            <img className="iubenda-no-cmp w-full h-auto object-cover"
+            <Image className="iubenda-no-cmp w-full h-auto object-cover"
               src="/images/my-img.jpg" 
               alt="About Christian Mannella" 
-              
+              width={800}
+              height={800}
             />
           </div>
         </section>
@@ -60,7 +62,7 @@ export default function SystemPage() {
           <h3 className="text-2xl font-bold text-white mb-4">Il mio Home Lab</h3>
           <p className="text-zinc-400 leading-relaxed">
             Il laboratorio non è solo un passatempo, è la mia palestra. Qui testo in ambienti isolati le configurazioni che poi porto nel mondo reale. 
-            Dall'automazione dei servizi con Docker al monitoraggio costante della rete, ogni tecnologia che citi in questo sito è stata "spaccata" e ricostruita più volte nel mio ambiente virtualizzato.
+            Dall&apos;automazione dei servizi con Docker al monitoraggio costante della rete, ogni tecnologia che citi in questo sito è stata &quot;spaccata&quot; e ricostruita più volte nel mio ambiente virtualizzato.
           </p>
         </section>
 

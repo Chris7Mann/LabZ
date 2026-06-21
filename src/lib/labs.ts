@@ -1,10 +1,22 @@
 import fs from 'fs';
 import path from 'path';
+import matter from 'gray-matter';
 
-const matter = require('gray-matter');
 const labsDirectory = path.join(process.cwd(), 'content/labs');
 
-export function getSortedLabsData() {
+export type LabData = {
+  slug: string;
+  title?: string;
+  coverImage?: string;
+  date?: string;
+  author?: string;
+  tech?: string;
+  difficulty?: string;
+  excerpt?: string;
+  tags?: string[];
+};
+
+export function getSortedLabsData(): LabData[] {
   if (!fs.existsSync(labsDirectory)) {
     return [];
   }
@@ -21,5 +33,5 @@ export function getSortedLabsData() {
     };
   });
 
-  return allLabsData.sort((a: any, b: any) => (a.date < b.date ? 1 : -1));
+  return allLabsData.sort((a, b) => ((a.date || '') < (b.date || '') ? 1 : -1));
 }

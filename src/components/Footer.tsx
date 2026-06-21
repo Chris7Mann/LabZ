@@ -21,11 +21,11 @@ export default function Footer() {
         <div className="space-y-4">
           <h3 className="text-white font-bold uppercase text-sm tracking-widest">Navigation</h3>
           <ul className="space-y-2 text-zinc-500 text-sm">
-            <li><a href="/" className="hover:text-emerald-400 transition-colors">Home</a></li>
-            <li><a href="/system" className="hover:text-emerald-400 transition-colors">System (About)</a></li>
-            <li><a href="/workshops" className="hover:text-emerald-400 transition-colors">Workshops</a></li>
-            <li><a href="tags/networking" className="hover:text-emerald-400 transition-colors">Networking</a></li>
-            <li><a href="tags/linux" className="hover:text-emerald-400 transition-colors">Linux</a></li>
+            <li><Link href="/" className="hover:text-emerald-400 transition-colors">Home</Link></li>
+            <li><Link href="/system" className="hover:text-emerald-400 transition-colors">System (About)</Link></li>
+            <li><Link href="/workshops" className="hover:text-emerald-400 transition-colors">Workshops</Link></li>
+            <li><Link href="/tags/networking" className="hover:text-emerald-400 transition-colors">Networking</Link></li>
+            <li><Link href="/tags/linux" className="hover:text-emerald-400 transition-colors">Linux</Link></li>
           </ul>
         </div>
 

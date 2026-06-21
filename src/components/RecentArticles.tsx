@@ -1,12 +1,13 @@
 import Link from 'next/link';
-import { getSortedArticlesData } from '@/lib/articles';
+import Image from 'next/image';
+import { ArticleData, getSortedArticlesData } from '@/lib/articles';
 
 export default function RecentArticles() {
     const articles = getSortedArticlesData();
 
     // Escludiamo quelli già in evidenza per non duplicarli
     const recentArticles = articles
-        .filter((article: any) => !article.featured)
+        .filter((article) => !article.featured)
         .slice(0, 6);
 
     if (recentArticles.length === 0) return null;
@@ -18,7 +19,7 @@ export default function RecentArticles() {
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {recentArticles.map((article: any) => (
+                {recentArticles.map((article: ArticleData) => (
                     <Link
                         href={`/articles/${article.slug}`}
                         key={article.slug}
@@ -28,9 +29,11 @@ export default function RecentArticles() {
                         {/* Immagine della card */}
                         {article.coverImage && (
                             <div className="w-full h-40 overflow-hidden">
-                                <img
+                                <Image
                                     src={article.coverImage}
-                                    alt={article.title}
+                                    alt={article.title || "Articolo LabZ"}
+                                    width={640}
+                                    height={360}
                                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                 />
                             </div>

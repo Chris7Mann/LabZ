@@ -42,11 +42,11 @@ export default function About() {
             <div className="prose prose-invert text-zinc-400 space-y-4">
               <p>
                 Sono un appassionato di networking e sistemi Linux, con un focus particolare sulla 
-                documentazione di laboratori complessi. LabZ nasce dall'esigenza di creare un 
-                archivio tecnico dove ogni configurazione non è solo codice, ma un'esperienza replicabile.
+                documentazione di laboratori complessi. LabZ nasce dall&apos;esigenza di creare un 
+                archivio tecnico dove ogni configurazione non è solo codice, ma un&apos;esperienza replicabile.
               </p>
               <p>
-                Il mio approccio è "root-level": non mi accontento che una cosa funzioni, voglio 
+                Il mio approccio è &quot;root-level&quot;: non mi accontento che una cosa funzioni, voglio 
                 capire perché funziona e come ottimizzarla a livello di pacchetto.
               </p>
             </div>
@@ -57,7 +57,7 @@ export default function About() {
               {"> THE_MISSION"}
             </h2>
             <p className="text-zinc-400">
-              Democratizzare l'accesso alla cultura tech attraverso laboratori pratici, 
+              Democratizzare l&apos;accesso alla cultura tech attraverso laboratori pratici, 
               testati e pronti per essere implementati in ambienti di produzione reali.
             </p>
           </div>

@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { getSortedLabsData } from '@/lib/labs';
+import Image from 'next/image';
+import { LabData, getSortedLabsData } from '@/lib/labs';
 
 export default function RecentLabs() {
   const labs = getSortedLabsData();
@@ -15,7 +16,7 @@ export default function RecentLabs() {
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {labs.slice(0, 6).map((lab: any) => (
+            {labs.slice(0, 6).map((lab: LabData) => (
               <Link
                 href={`/labs/${lab.slug}`}
                 key={lab.slug}
@@ -23,9 +24,11 @@ export default function RecentLabs() {
               >
                 {lab.coverImage && (
                   <div className="-mt-6 -mx-6 mb-2">
-                    <img
+                    <Image
                       src={lab.coverImage}
-                      alt={lab.title}
+                      alt={lab.title || "Lab tecnico"}
+                      width={640}
+                      height={360}
                       className="iubenda-no-cmp w-full h-40 object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                   </div>
@@ -48,7 +51,7 @@ export default function RecentLabs() {
                 </p>
 
                 <div className="flex flex-wrap gap-2 pt-2">
-                  {lab.tags.map((tag: string) => (
+                  {lab.tags?.map((tag: string) => (
                     <span key={tag} className="text-[12px] text-emerald-400 font-mono border border-zinc-800 px-2 py-0.5 rounded">
                       #{tag}
                     </span>

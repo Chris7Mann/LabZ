@@ -1,6 +1,11 @@
 import Link from 'next/link';
 
-export function LabNavigation({ prev, next }: { prev?: any, next?: any }) {
+type LabNavigationItem = {
+  slug: string;
+  title?: string;
+};
+
+export function LabNavigation({ prev, next }: { prev?: LabNavigationItem | null, next?: LabNavigationItem | null }) {
   return (
     <div className="grid grid-cols-2 gap-4 border-t border-zinc-800 pt-8 mt-12">
       {prev ? (

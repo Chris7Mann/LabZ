@@ -1,9 +1,18 @@
 import { getSortedLabsData } from '@/lib/labs';
+import Image from 'next/image';
 import Link from 'next/link';
 import Breadcrumb from "@/components/Breadcrumb";
 
+type LabCard = {
+  slug: string;
+  title?: string;
+  coverImage?: string;
+  tech?: string;
+  excerpt?: string;
+};
+
 export default function WorkshopsPage() {
-  const labs = getSortedLabsData();
+  const labs = getSortedLabsData() as LabCard[];
 
   return (
     <main className="min-h-screen bg-black py-20 px-6">
@@ -24,7 +33,7 @@ export default function WorkshopsPage() {
         
         {/* Griglia Laboratori */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {labs.map((lab: any) => (
+          {labs.map((lab) => (
             <Link 
               key={lab.slug} 
               href={`/labs/${lab.slug}`}
@@ -32,9 +41,11 @@ export default function WorkshopsPage() {
             >
               {/* Area Immagine */}
               <div className="h-40 w-full overflow-hidden bg-zinc-950">
-                <img 
+                <Image
                   src={lab.coverImage || "/images/default-lab.jpg"} 
-                  alt={lab.title} 
+                  alt={lab.title || "Lab tecnico"}
+                  width={640}
+                  height={360}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
               </div>
@@ -48,9 +59,9 @@ export default function WorkshopsPage() {
                   {lab.title}
                 </h3>
                 
-                {/* Visualizzazione opzionale descrizione se presente nei tuoi dati */}
-                {lab.description && (
-                   <p className="text-zinc-500 text-sm mt-2 line-clamp-2">{lab.description}</p>
+                {/* Visualizzazione opzionale descrizione se presente nei dati */}
+                {lab.excerpt && (
+                   <p className="text-zinc-500 text-sm mt-2 line-clamp-2">{lab.excerpt}</p>
                 )}
 
                 <div className="mt-6 text-emerald-600 text-xs font-mono group-hover:translate-x-2 transition-transform">

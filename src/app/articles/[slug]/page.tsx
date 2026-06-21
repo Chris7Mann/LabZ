@@ -1,9 +1,10 @@
 import fs from 'fs';
 import path from 'path';
+import matter from 'gray-matter';
+import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { MDXRemote } from 'next-mdx-remote/rsc'; 
 import {Terminal} from "@/components/mdx/Terminal";
-const matter = require('gray-matter');
 import Comments from "@/components/Comments";
 import { Note } from '@/components/mdx/Note';
 import { Text } from "@/components/mdx/Text";
@@ -61,9 +62,12 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                 {/* Immagine di copertina */}
                 {data.coverImage && (
                     <div className="w-full mb-12">
-                        <img className="w-full h-auto max-h-112.5 object-cover rounded-xl border border-zinc-800"
+                        <Image className="w-full h-auto max-h-112.5 object-cover rounded-xl border border-zinc-800"
                             src={data.coverImage}
-                            alt={data.title} />    
+                            alt={data.title}
+                            width={1200}
+                            height={675}
+                        />
                     </div>
                 )}
 

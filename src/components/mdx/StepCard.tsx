@@ -1,4 +1,12 @@
-export function StepCard({ label, title, children }: any) {
+import { ReactNode } from "react";
+
+type StepCardProps = {
+  label: string;
+  title: string;
+  children: ReactNode;
+};
+
+export function StepCard({ label, title, children }: StepCardProps) {
   return (
     <div className="step-card-container">
       <div className="step-card-label">{label}</div>

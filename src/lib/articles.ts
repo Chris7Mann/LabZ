@@ -1,10 +1,20 @@
 import fs from 'fs';
 import path from 'path';
-const matter = require('gray-matter');
+import matter from 'gray-matter';
 
 const articlesDirectory = path.join(process.cwd(), 'content/articles');
 
-export function getSortedArticlesData() {
+export type ArticleData = {
+    slug: string;
+    title?: string;
+    coverImage?: string;
+    date?: string;
+    author?: string;
+    featured?: boolean;
+    tags?: string[];
+};
+
+export function getSortedArticlesData(): ArticleData[] {
     if (!fs.existsSync(articlesDirectory)) {
         return [];
     }
@@ -22,7 +32,7 @@ export function getSortedArticlesData() {
     });
 
     // Ordina per data (dal più recente al più vecchio) se la data è presente
-    return allArticlesData.sort((a: any, b: any) => {
+    return allArticlesData.sort((a, b) => {
         if (a.date && b.date) {
             return new Date(b.date).getTime() - new Date(a.date).getTime() > 0 ? -1 : 1;
         }

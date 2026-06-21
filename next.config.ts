@@ -1,4 +1,5 @@
 const nextConfig = {
+  outputFileTracingRoot: process.cwd(),
   // Disabilita la cache aggressiva in dev per vedere i cambiamenti CSS
   onDemandEntries: {
     maxInactiveAge: 25 * 1000,

@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { getSortedArticlesData } from '@/lib/articles';
+import Image from 'next/image';
+import { ArticleData, getSortedArticlesData } from '@/lib/articles';
 import Breadcrumb from "@/components/Breadcrumb";
 
 // Aggiunto "async" e aggiornato il tipo di params a Promise
@@ -14,7 +15,7 @@ export default async function TagPage({ params }: { params: Promise<{ tag: strin
     const allArticles = getSortedArticlesData();
 
     // Filtriamo solo quelli che hanno questo tag nel loro frontmatter
-    const filteredArticles = allArticles.filter((article: any) => {
+    const filteredArticles = allArticles.filter((article) => {
         if (!article.tags) return false;
         const lowerCaseTags = article.tags.map((t: string) => t.toLowerCase());
         return lowerCaseTags.includes(tag);
@@ -46,7 +47,7 @@ export default async function TagPage({ params }: { params: Promise<{ tag: strin
                     </p>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filteredArticles.map((article: any) => (
+                        {filteredArticles.map((article: ArticleData) => (
                            <Link
                                 href={`/articles/${article.slug}`}
                                 key={article.slug}
@@ -54,10 +55,12 @@ export default async function TagPage({ params }: { params: Promise<{ tag: strin
                                 {/* Contenitore immagine con overflow-hidden per bloccare lo zoom */}
                                 {article.coverImage && (
                                     <div className="w-full h-45 overflow-hidden">
-                                        <img
+                                        <Image
                                             src={article.coverImage}
-                                            alt={article.title}
-                                            className="iubenda-no-cmpw-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                            alt={article.title || "Articolo LabZ"}
+                                            width={640}
+                                            height={360}
+                                            className="iubenda-no-cmp w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                         />
                                     </div>
                                 )}

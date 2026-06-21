@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
+import Image from 'next/image';
 import { MDXRemote } from 'next-mdx-remote/rsc';
 import { getSortedLabsData } from '@/lib/labs'; // Assicurati che questo esista
 import { StepCard } from '@/components/mdx/StepCard';
@@ -14,7 +15,6 @@ import Comments from "@/components/Comments";
 import Warning from "@/components/mdx/Warning";
 import Info from "@/components/mdx/Info";
 import Diagram from "@/components/mdx/Diagram";
-import Breadcrumb from "@/components/Breadcrumb";
 
 
 const components = {
@@ -50,9 +50,13 @@ export default async function LabPage({ params }: { params: Promise<{ slug: stri
   return (
     <article className="max-w-3xl mx-auto px-8 py-20 text-zinc-300">
       {data.coverImage && (
-        <img className="w-full h-100 object-cover rounded-xl mb-10 border border-zinc-800" 
-        src={data.coverImage}
-          alt={data.title} />
+        <Image
+          className="w-full h-100 object-cover rounded-xl mb-10 border border-zinc-800"
+          src={data.coverImage}
+          alt={data.title}
+          width={1200}
+          height={675}
+        />
       )}
 
       {/* Titolo e Data */}
