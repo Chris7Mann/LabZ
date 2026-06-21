@@ -40,13 +40,13 @@ export default function WorkshopsPage() {
               className="group bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden hover:border-emerald-500 transition-all hover:shadow-[0_0_20px_-5px_rgba(16,185,129,0.3)] block"
             >
               {/* Area Immagine */}
-              <div className="h-40 w-full overflow-hidden bg-zinc-950">
+              <div className="relative h-40 w-full overflow-hidden bg-zinc-950">
                 <Image
                   src={lab.coverImage || "/images/default-lab.jpg"} 
                   alt={lab.title || "Lab tecnico"}
-                  width={640}
-                  height={360}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  fill
+                  sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+                  className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
               </div>
 

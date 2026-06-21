@@ -23,13 +23,13 @@ export default function RecentLabs() {
                 className="group border border-zinc-800 bg-zinc-900/30 p-6 rounded-xl hover:border-emerald-500/50 transition-all flex flex-col gap-4 overflow-hidden"
               >
                 {lab.coverImage && (
-                  <div className="-mt-6 -mx-6 mb-2">
+                  <div className="-mt-6 -mx-6 mb-2 relative h-40 overflow-hidden">
                     <Image
                       src={lab.coverImage}
                       alt={lab.title || "Lab tecnico"}
-                      width={640}
-                      height={360}
-                      className="iubenda-no-cmp w-full h-40 object-cover transition-transform duration-500 group-hover:scale-105"
+                      fill
+                      sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                   </div>
                 )}
@@ -46,7 +46,7 @@ export default function RecentLabs() {
                   {lab.title}
                 </h3>
 
-                <p className="text-sm text-zinc-400 leading-relaxed flex-grow">
+                <p className="text-sm text-zinc-400 leading-relaxed grow">
                   {lab.excerpt}
                 </p>
 

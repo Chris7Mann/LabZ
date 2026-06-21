@@ -60,7 +60,7 @@ export default async function TagPage({ params }: { params: Promise<{ tag: strin
                                             alt={article.title || "Articolo LabZ"}
                                             width={640}
                                             height={360}
-                                            className="iubenda-no-cmp w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                         />
                                     </div>
                                 )}

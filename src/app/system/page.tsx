@@ -28,7 +28,7 @@ export default function SystemPage() {
             </p>
           </div>
           <div className="rounded-2xl overflow-hidden border border-zinc-800 shadow-2xl">
-            <Image className="iubenda-no-cmp w-full h-auto object-cover"
+            <Image className="w-full h-auto object-cover"
               src="/images/my-img.png" 
               alt="About Christian Mannella" 
               width={800}
