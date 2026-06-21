@@ -106,7 +106,7 @@ export default function ContactForm() {
           }`}
           aria-live="polite"
         >
-          {feedback || "Il messaggio viene inviato senza aprire il client email."}
+          {feedback || "Niente spam. Non serve nessuna registrazione."}
         </p>
         <button
           type="submit"
