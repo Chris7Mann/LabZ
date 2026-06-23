@@ -1,0 +1,633 @@
+---
+title: "Gestione Utenti e Permessi su Linux Server"
+coverImage: /images/linux_userM.png
+date: "23-06-2026"
+author: "ChrisMann"
+tech: "LINUX"
+difficulty: "INTERMEDIATE"
+excerpt: "Gestione di utenti, gruppi, sudo, permessi, ownership, ACL su server Linux."
+tags:
+  - Linux
+---
+
+Guida tecnica alla gestione degli utenti e dei permessi su un server Linux.
+
+In questo laboratorio configureremo account locali, gruppi operativi, privilegi amministrativi controllati, permessi su file e directory, ACL, scadenza password, blocco account e verifiche di troubleshooting.
+
+
+<SectionTitle>Scenario del Laboratorio</SectionTitle>
+
+Immaginiamo di amministrare un server Linux usato da un piccolo team tecnico.
+
+Sul server devono lavorare tre profili diversi:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>un amministratore con accesso tramite sudo;</li>
+  <li>operatori applicativi che possono leggere e modificare una directory di progetto;</li>
+  <li>utenti di sola consultazione che possono leggere i file ma non modificarli.</li>
+</ul>
+
+L'obiettivo è evitare account condivisi, privilegi eccessivi e permessi troppo larghi.
+
+<Info>
+
+Questo lab usa nomi dimostrativi e password di laboratorio.
+
+In produzione ogni utente dovrebbe avere un account personale, autenticazione forte, privilegi minimi e tracciamento delle attività amministrative.
+
+</Info>
+
+
+<SectionTitle>Architettura del Lab</SectionTitle>
+
+Il modello sarà basato su utenti locali, gruppi Linux e permessi applicati a una directory condivisa.
+
+<Diagram code="
+graph TD
+    Admin[adminops] --> Sudo[sudo controllato]
+    Operator[appops1 appops2] --> Group[gruppo appops]
+    Reader[viewer1] --> ReadGroup[gruppo appreaders]
+    Group --> Project[ /srv/labz-app]
+    ReadGroup --> Project
+    Sudo --> Logs[log sudo e auth]
+"/>
+
+<Warning>
+
+Non usare `chmod 777` per risolvere problemi di accesso.
+
+Di solito significa che non sono stati progettati correttamente utenti, gruppi, ownership o ACL.
+
+</Warning>
+
+
+<SectionTitle>Obiettivi del Lab</SectionTitle>
+
+Al termine del laboratorio sarai in grado di:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>creare utenti locali su Linux;</li>
+  <li>creare gruppi operativi e assegnare utenti;</li>
+  <li>gestire privilegi sudo in modo controllato;</li>
+  <li>leggere e modificare ownership e permessi;</li>
+  <li>usare il bit setgid sulle directory condivise;</li>
+  <li>applicare ACL quando i permessi classici non bastano;</li>
+  <li>bloccare, sbloccare e far scadere account;</li>
+  <li>verificare log e diagnosticare errori di permesso.</li>
+</ul>
+
+
+<SectionTitle>Prerequisiti</SectionTitle>
+
+Prima di iniziare dovresti conoscere:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>comandi base Linux;</li>
+  <li>uso di terminale e shell;</li>
+  <li>concetto di file, directory e path assoluti;</li>
+  <li>differenza tra utente normale e root;</li>
+  <li>uso base di un editor come nano o vim.</li>
+</ul>
+
+<Note>
+
+Nel lab useremo comandi compatibili con distribuzioni Debian/Ubuntu.
+
+Su RHEL, Rocky Linux, AlmaLinux o Fedora alcuni comandi sono identici, mentre la gestione di pacchetti e gruppi amministrativi può cambiare.
+
+</Note>
+
+
+<SectionTitle>Concetti Fondamentali</SectionTitle>
+
+Su Linux ogni processo gira con un'identità utente e gruppo.
+
+I permessi vengono valutati principalmente su tre livelli:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li><strong>owner</strong>: il proprietario del file o della directory;</li>
+  <li><strong>group</strong>: il gruppo associato all'oggetto;</li>
+  <li><strong>others</strong>: tutti gli altri utenti del sistema.</li>
+</ul>
+
+I permessi classici sono:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li><strong>r</strong>: lettura;</li>
+  <li><strong>w</strong>: scrittura;</li>
+  <li><strong>x</strong>: esecuzione su file, attraversamento su directory.</li>
+</ul>
+
+<Info>
+
+Su una directory il permesso `x` non significa "eseguire", ma poter entrare o attraversare quella directory.
+
+Senza `x`, anche un utente con permesso di lettura può avere problemi ad accedere ai file interni.
+
+</Info>
+
+
+<StepCard label="A" title="Verifica dell'identità corrente">
+
+Prima di creare utenti e gruppi, controlliamo con quale account stiamo lavorando.
+
+<Terminal code="
+whoami
+id
+groups
+" />
+
+Verifichiamo anche se l'utente corrente può usare sudo.
+
+<Terminal code="
+sudo -v
+sudo -l
+" />
+
+<Note>
+
+Il comando `sudo -l` mostra quali comandi l'utente può eseguire con privilegi elevati.
+
+È utile per verificare privilegi effettivi e regole sudo applicate.
+
+</Note>
+
+</StepCard>
+
+
+<StepCard label="B" title="Creazione dei gruppi operativi">
+
+Creiamo due gruppi:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li><strong>appops</strong>: utenti che possono modificare i file applicativi;</li>
+  <li><strong>appreaders</strong>: utenti che possono leggere i file applicativi.</li>
+</ul>
+
+<Terminal code="
+sudo groupadd appops
+sudo groupadd appreaders
+" />
+
+Verifichiamo che i gruppi siano presenti.
+
+<Terminal code="
+getent group appops
+getent group appreaders
+" />
+
+<Info>
+
+`getent group` interroga il database dei gruppi configurato sul sistema.
+
+Funziona sia con `/etc/group` sia con fonti centralizzate come LDAP, se configurate.
+
+</Info>
+
+</StepCard>
+
+
+<StepCard label="C" title="Creazione degli utenti di laboratorio">
+
+Creiamo un utente amministrativo, due operatori e un utente di sola lettura.
+
+<Terminal code="
+sudo adduser adminops
+sudo adduser appops1
+sudo adduser appops2
+sudo adduser viewer1
+" />
+
+Assegniamo gli utenti ai gruppi corretti.
+
+<Terminal code="
+sudo usermod -aG sudo adminops
+sudo usermod -aG appops appops1
+sudo usermod -aG appops appops2
+sudo usermod -aG appreaders viewer1
+" />
+
+Controlliamo il risultato.
+
+<Terminal code="
+id adminops
+id appops1
+id appops2
+id viewer1
+" />
+
+<Warning>
+
+Quando usi `usermod -aG`, l'opzione `-a` è importante.
+
+Senza `-a`, potresti sostituire i gruppi supplementari dell'utente invece di aggiungerne uno nuovo.
+
+</Warning>
+
+</StepCard>
+
+
+<StepCard label="D" title="Impostazione e scadenza delle password">
+
+In un laboratorio possiamo impostare password locali per testare il login.
+
+<Terminal code="
+sudo passwd adminops
+sudo passwd appops1
+sudo passwd appops2
+sudo passwd viewer1
+" />
+
+Forziamo il cambio password al primo accesso per un utente.
+
+<Terminal code="
+sudo chage -d 0 appops1
+" />
+
+Visualizziamo la policy password dell'utente.
+
+<Terminal code="
+sudo chage -l appops1
+" />
+
+<Info>
+
+In produzione la gestione password dovrebbe seguire policy aziendali, autenticazione forte e, quando possibile, integrazione con un identity provider centralizzato.
+
+</Info>
+
+</StepCard>
+
+
+<StepCard label="E" title="Creazione della directory applicativa">
+
+Creiamo una directory condivisa per il team applicativo.
+
+<Terminal code="
+sudo mkdir -p /srv/labz-app
+sudo touch /srv/labz-app/config.yml
+sudo touch /srv/labz-app/README.md
+" />
+
+Assegniamo owner e gruppo.
+
+<Terminal code="
+sudo chown -R root:appops /srv/labz-app
+" />
+
+Applichiamo permessi conservativi.
+
+<Terminal code="
+sudo chmod 2770 /srv/labz-app
+sudo chmod 660 /srv/labz-app/config.yml
+sudo chmod 664 /srv/labz-app/README.md
+" />
+
+Verifichiamo.
+
+<Terminal code="
+ls -ld /srv/labz-app
+ls -l /srv/labz-app
+" />
+
+<Note>
+
+Il valore `2770` abilita il bit setgid sulla directory.
+
+I nuovi file creati dentro `/srv/labz-app` erediteranno il gruppo `appops`, rendendo più semplice il lavoro collaborativo.
+
+</Note>
+
+</StepCard>
+
+
+<StepCard label="F" title="Test dei permessi con un utente operativo">
+
+Entriamo come utente operativo e proviamo a creare un file.
+
+<Terminal code="
+sudo -iu appops1
+cd /srv/labz-app
+touch deploy-notes.txt
+echo 'deploy window: sunday morning' > deploy-notes.txt
+ls -l
+exit
+" />
+
+Output simulato:
+
+<Terminal code="
+-rw-rw-r-- 1 appops1 appops deploy-notes.txt
+" />
+
+<Info>
+
+Se il gruppo del nuovo file è `appops`, il bit setgid sulla directory sta funzionando.
+
+</Info>
+
+</StepCard>
+
+
+<StepCard label="G" title="Aggiunta di accesso in sola lettura con ACL">
+
+I permessi classici permettono un solo gruppo proprietario.
+
+Per dare accesso in lettura anche al gruppo `appreaders`, usiamo le ACL.
+
+Installiamo gli strumenti ACL se non presenti.
+
+<Terminal code="
+sudo apt update
+sudo apt install acl
+" />
+
+Applichiamo ACL al percorso esistente.
+
+<Terminal code="
+sudo setfacl -R -m g:appreaders:rx /srv/labz-app
+sudo setfacl -R -m d:g:appreaders:rx /srv/labz-app
+" />
+
+Verifichiamo.
+
+<Terminal code="
+getfacl /srv/labz-app
+" />
+
+<Warning>
+
+Le ACL sono potenti, ma possono rendere più complessa la lettura dei permessi.
+
+Usale quando i permessi classici owner/group/others non bastano, non come sostituto automatico di una buona progettazione dei gruppi.
+
+</Warning>
+
+</StepCard>
+
+
+<StepCard label="H" title="Test dell'utente di sola lettura">
+
+Verifichiamo che `viewer1` possa leggere ma non scrivere.
+
+<Terminal code="
+sudo -iu viewer1
+cd /srv/labz-app
+ls -l
+cat README.md
+touch test-write.txt
+exit
+" />
+
+Output atteso per il tentativo di scrittura:
+
+<Terminal code="
+touch: cannot touch 'test-write.txt': Permission denied
+" />
+
+<Info>
+
+Questo è il comportamento corretto: l'utente può consultare i file ma non creare o modificare contenuti nella directory.
+
+</Info>
+
+</StepCard>
+
+
+<StepCard label="I" title="Configurazione sudo controllata">
+
+Evitiamo di dare privilegi amministrativi generici quando non servono.
+
+Creiamo una regola sudo dedicata per permettere agli operatori di riavviare solo un servizio specifico.
+
+<Terminal code="
+sudo visudo -f /etc/sudoers.d/appops-labz
+" />
+
+Inseriamo questa regola:
+
+<Terminal code="
+%appops ALL=(root) NOPASSWD: /bin/systemctl restart labz-app.service, /bin/systemctl status labz-app.service
+" />
+
+Impostiamo permessi corretti sul file sudoers.
+
+<Terminal code="
+sudo chmod 440 /etc/sudoers.d/appops-labz
+sudo visudo -c
+" />
+
+<Warning>
+
+Usa sempre `visudo` o `visudo -c` per validare file sudoers.
+
+Un errore di sintassi può bloccare l'uso di sudo.
+
+</Warning>
+
+</StepCard>
+
+
+<StepCard label="J" title="Blocco e sblocco di un account">
+
+Blocchiamo temporaneamente l'account `viewer1`.
+
+<Terminal code="
+sudo usermod -L viewer1
+sudo passwd -S viewer1
+" />
+
+Sblocchiamo l'account.
+
+<Terminal code="
+sudo usermod -U viewer1
+sudo passwd -S viewer1
+" />
+
+Possiamo anche impostare una data di scadenza.
+
+<Terminal code="
+sudo chage -E 2026-12-31 viewer1
+sudo chage -l viewer1
+" />
+
+<Note>
+
+Bloccare un account è diverso da eliminarlo.
+
+Il blocco conserva home directory, file e UID, ed è utile per sospensioni temporanee o offboarding controllato.
+
+</Note>
+
+</StepCard>
+
+
+<StepCard label="K" title="Rimozione sicura di un utente">
+
+Prima di eliminare un account, controlliamo processi e file di proprietà dell'utente.
+
+<Terminal code="
+ps -u viewer1
+sudo find / -xdev -user viewer1 2>/dev/null
+" />
+
+Per rimuovere l'utente mantenendo la home:
+
+<Terminal code="
+sudo deluser viewer1
+" />
+
+Per rimuovere anche la home directory:
+
+<Terminal code="
+sudo deluser --remove-home viewer1
+" />
+
+<Warning>
+
+Non rimuovere la home directory di un utente senza verificare prima backup, dati applicativi, chiavi SSH, job schedulati e file di proprietà sparsi nel filesystem.
+
+</Warning>
+
+</StepCard>
+
+
+<SectionTitle>Verifiche Utili</SectionTitle>
+
+Comandi rapidi per controllare utenti, gruppi e permessi.
+
+<Terminal code="
+getent passwd adminops
+getent group appops
+id appops1
+groups appops1
+ls -ld /srv/labz-app
+getfacl /srv/labz-app
+sudo -l -U appops1
+" />
+
+Per controllare accessi e uso di sudo:
+
+<Terminal code="
+sudo journalctl _COMM=sudo
+sudo grep sudo /var/log/auth.log
+" />
+
+<Info>
+
+Su alcune distribuzioni i log di autenticazione sono in `/var/log/secure` invece di `/var/log/auth.log`.
+
+</Info>
+
+
+<SectionTitle>Troubleshooting</SectionTitle>
+
+<StepCard label="L" title="Errore Permission denied su una directory">
+
+Controlla sempre tutta la catena del path.
+
+<Terminal code="
+namei -l /srv/labz-app/config.yml
+ls -ld /srv
+ls -ld /srv/labz-app
+ls -l /srv/labz-app/config.yml
+" />
+
+<Note>
+
+Anche se un file ha permessi corretti, l'utente deve poter attraversare le directory superiori.
+
+</Note>
+
+</StepCard>
+
+
+<StepCard label="M" title="Utente aggiunto al gruppo ma permessi ancora negati">
+
+Dopo una modifica ai gruppi, l'utente deve aprire una nuova sessione.
+
+<Terminal code="
+id appops1
+groups appops1
+" />
+
+Per aggiornare la sessione corrente in modo rapido:
+
+<Terminal code="
+newgrp appops
+" />
+
+<Info>
+
+Il login carica i gruppi dell'utente all'inizio della sessione.
+
+Se modifichi i gruppi mentre l'utente è già loggato, la sessione esistente può non vedere subito il cambiamento.
+
+</Info>
+
+</StepCard>
+
+
+<StepCard label="N" title="Sudo non funziona dopo una modifica">
+
+Controlla la sintassi dei file sudoers.
+
+<Terminal code="
+sudo visudo -c
+sudo ls -l /etc/sudoers.d/
+" />
+
+Verifica le regole disponibili per l'utente.
+
+<Terminal code="
+sudo -l -U appops1
+" />
+
+<Warning>
+
+Non modificare `/etc/sudoers` con un editor generico senza validazione.
+
+`visudo` protegge da errori di sintassi che possono bloccare l'amministrazione del server.
+
+</Warning>
+
+</StepCard>
+
+
+<SectionTitle>Best Practice di Produzione</SectionTitle>
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>Usare account personali, non account condivisi.</li>
+  <li>Applicare il principio del privilegio minimo.</li>
+  <li>Separare gruppi di scrittura, lettura e amministrazione.</li>
+  <li>Limitare sudo a comandi specifici quando possibile.</li>
+  <li>Verificare log di accesso e uso di sudo.</li>
+  <li>Rimuovere o bloccare account non più necessari.</li>
+  <li>Non usare `chmod 777` come soluzione pratica.</li>
+  <li>Documentare ownership, gruppi e responsabilità operative.</li>
+</ul>
+
+
+<SectionTitle>Competenze Acquisite</SectionTitle>
+
+Con questo laboratorio hai praticato:
+
+<ul className="list-disc pl-6 space-y-1">
+  <li>gestione utenti locali;</li>
+  <li>gestione gruppi Linux;</li>
+  <li>configurazione permessi classici;</li>
+  <li>uso del bit setgid;</li>
+  <li>uso base delle ACL;</li>
+  <li>controllo dei privilegi sudo;</li>
+  <li>blocco, scadenza e rimozione account;</li>
+  <li>troubleshooting degli errori di accesso.</li>
+</ul>
+
+
+<SectionTitle>Conclusione</SectionTitle>
+
+La gestione utenti su Linux non riguarda solo la creazione di account.
+
+Un server ben amministrato richiede gruppi chiari, permessi coerenti, sudo controllato, log consultabili e procedure di offboarding.
+
+La regola pratica è semplice: ogni utente deve avere solo ciò che serve per lavorare, niente di più.
