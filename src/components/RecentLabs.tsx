@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { LabData, getSortedLabsData } from '@/lib/labs';
+import { getThumbImageSrc } from '@/lib/images';
 
 export default function RecentLabs() {
   const labs = getSortedLabsData();
@@ -16,7 +17,7 @@ export default function RecentLabs() {
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {labs.slice(0, 6).map((lab: LabData) => (
+            {labs.slice(0, 6).map((lab: LabData, index) => (
               <Link
                 href={`/labs/${lab.slug}`}
                 key={lab.slug}
@@ -25,10 +26,12 @@ export default function RecentLabs() {
                 {lab.coverImage && (
                   <div className="-mt-6 -mx-6 mb-2 relative h-40 overflow-hidden">
                     <Image
-                      src={lab.coverImage}
+                      src={getThumbImageSrc(lab.coverImage) || lab.coverImage}
                       alt={lab.title || "Lab tecnico"}
                       fill
                       sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+                      priority={index < 3}
+                      unoptimized
                       className="object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                   </div>

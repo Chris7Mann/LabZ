@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArticleData, getSortedArticlesData } from '@/lib/articles';
+import { getThumbImageSrc } from '@/lib/images';
 import Breadcrumb from "@/components/Breadcrumb";
 
 // Aggiunto "async" e aggiornato il tipo di params a Promise
@@ -22,7 +23,7 @@ export default async function TagPage({ params }: { params: Promise<{ tag: strin
     });
 
     return (
-        <main className="min-h-screen py-24">
+        <main className="min-h-screen py-24 bg-black">
             <section className="max-w-5xl mx-auto px-8">
                 <Breadcrumb items={[
                     { label: "HOME", href: "/" },
@@ -56,10 +57,11 @@ export default async function TagPage({ params }: { params: Promise<{ tag: strin
                                 {article.coverImage && (
                                     <div className="w-full h-45 overflow-hidden">
                                         <Image
-                                            src={article.coverImage}
+                                            src={getThumbImageSrc(article.coverImage) || article.coverImage}
                                             alt={article.title || "Articolo LabZ"}
                                             width={640}
                                             height={360}
+                                            unoptimized
                                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                         />
                                     </div>

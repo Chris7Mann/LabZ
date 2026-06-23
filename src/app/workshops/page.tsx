@@ -1,4 +1,5 @@
 import { getSortedLabsData } from '@/lib/labs';
+import { getThumbImageSrc } from '@/lib/images';
 import Image from 'next/image';
 import Link from 'next/link';
 import Breadcrumb from "@/components/Breadcrumb";
@@ -33,7 +34,7 @@ export default function WorkshopsPage() {
         
         {/* Griglia Laboratori */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {labs.map((lab) => (
+          {labs.map((lab, index) => (
             <Link 
               key={lab.slug} 
               href={`/labs/${lab.slug}`}
@@ -42,10 +43,12 @@ export default function WorkshopsPage() {
               {/* Area Immagine */}
               <div className="relative h-40 w-full overflow-hidden bg-zinc-950">
                 <Image
-                  src={lab.coverImage || "/images/default-lab.jpg"} 
+                  src={getThumbImageSrc(lab.coverImage) || "/images/default-lab.jpg"} 
                   alt={lab.title || "Lab tecnico"}
                   fill
                   sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+                  priority={index < 3}
+                  unoptimized
                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
               </div>

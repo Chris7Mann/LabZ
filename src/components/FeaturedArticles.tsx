@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArticleData, getSortedArticlesData } from '@/lib/articles';
+import { getThumbImageSrc } from '@/lib/images';
 
 export default function FeaturedArticles() {
     const articles = getSortedArticlesData();
@@ -31,10 +32,12 @@ export default function FeaturedArticles() {
                     >
                         {heroArticle.coverImage && (
                             <Image
-                                src={heroArticle.coverImage}
+                                src={getThumbImageSrc(heroArticle.coverImage) || heroArticle.coverImage}
                                 alt={heroArticle.title || "Articolo in evidenza"}
                                 width={1200}
                                 height={675}
+                                priority
+                                unoptimized
                                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                             />
                         )}
@@ -58,10 +61,11 @@ export default function FeaturedArticles() {
                         {article.coverImage && (
                             <div className="w-full h-40 overflow-hidden">
                                 <Image
-                                    src={article.coverImage}
+                                    src={getThumbImageSrc(article.coverImage) || article.coverImage}
                                     alt={article.title || "Articolo LabZ"}
                                     width={640}
                                     height={360}
+                                    unoptimized
                                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                 />
                             </div>
