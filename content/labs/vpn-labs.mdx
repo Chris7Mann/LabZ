@@ -1,0 +1,382 @@
+---
+title: "VPN: cos'è e come creare una connessione sicura"
+coverImage: /images/vpn.png
+date: "18-06-2026"
+author: "ChrisMann"
+tech: "VPN"
+difficulty: "MEDIUM"
+excerpt: "Creare una connessione sicura tra un client remoto e una rete privata."
+tags: ["VPN", "NETWORKING", "SECURITY"]
+---
+
+Una **VPN**, cioè **Virtual Private Network**, è una tecnologia che permette di creare una connessione privata e sicura attraverso una rete non fidata, come Internet.
+
+In pratica, una VPN crea un **tunnel cifrato** tra due punti della rete. Tutto il traffico che passa dentro questo tunnel viene protetto tramite crittografia, cosi da non essere leggibile da chi si trova lungo il percorso.
+
+Una VPN viene usata spesso per:
+
+<ul className="list-disc pl-6 space-y-1 mb-4">
+    <li>collegarsi da remoto alla rete aziendale;</li>
+    <li>proteggere il traffico quando si usa una rete pubblica;</li>
+    <li>collegare due sedi distanti tra loro;</li>
+    <li>accedere a servizi interni non esposti direttamente su Internet;</li>
+    <li>creare laboratori di rete distribuiti tra piu macchine.</li>
+</ul>
+
+L'obiettivo di questo lab non è solo installare una VPN, ma capire cosa succede dietro: quali componenti servono, quali porte vengono usate, come viene assegnato un indirizzo IP virtuale è come verificare che il traffico passi davvero nel tunnel.
+
+**In questo lab vedremo:**
+
+<ul className="list-disc pl-6 space-y-1 mb-4">
+    <li>cos'e una VPN;</li>
+    <li>quali tipi di VPN esistono;</li>
+    <li>come funziona un tunnel VPN;</li>
+    <li>quali elementi servono per creare una connessione;</li>
+    <li>come configurare una VPN di esempio con WireGuard;</li>
+    <li>come verificare la connessione;</li>
+    <li>quali controlli fare in caso di problemi.</li>
+</ul>
+
+## Scenario del lab
+
+Immaginiamo di avere un piccolo server Linux raggiungibile da Internet e un portatile da cui vogliamo collegarci alla rete privata in modo sicuro.
+
+La VPN sara costruita con questo schema:
+
+<ul className="list-disc pl-6 space-y-1 mb-4">
+    <li>**Server VPN**: macchina Linux che accetta le connessioni;</li>
+    <li>**Client VPN**: portatile o PC remoto;</li>
+    <li>**Tunnel VPN**: collegamento cifrato tra client e server;</li>
+    <li>**Rete VPN**: rete virtuale usata dai dispositivi collegati.</li>
+</ul>
+
+Per l'esempio useremo WireGuard, una soluzione VPN moderna, leggera e molto usata in ambienti Linux.
+
+<Info>
+WireGuard lavora in modo diverso da VPN più tradizionali come OpenVPN o IPsec. La configurazione è piu compatta, ma il concetto resta lo stesso: creare un tunnel cifrato tra peer autorizzati.
+</Info>
+
+## Piano di indirizzamento
+
+Useremo una piccola rete dedicata alla VPN:
+
+<div className="table-container">
+    <table className='my-custom-table'>
+        <thead>
+            <tr>
+                <th>Dispositivo</th>
+                <th>Interfaccia VPN</th>
+                <th>Indirizzo VPN</th>
+                <th>Ruolo</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Server</td>
+                <td>wg0</td>
+                <td>10.10.10.1/24</td>
+                <td>Endpoint VPN</td>
+            </tr>
+            <tr>
+                <td>Client</td>
+                <td>wg0</td>
+                <td>10.10.10.2/32</td>
+                <td>Peer remoto</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+La porta UDP usata dal server sarà la `51820`.
+
+<Warning>
+Non pubblicare mai chiavi private, file di configurazione reali o screenshot che contengono segreti. In questo lab i valori sono esempi e vanno sostituiti con quelli generati sul tuo sistema.
+</Warning>
+
+## Come funziona il tunnel
+
+Quando il client avvia la VPN, contatta l'endpoint pubblico del server. Se le chiavi combaciano e la configurazione e corretta, viene creato un tunnel cifrato.
+
+Da quel momento, il client puo inviare traffico verso la rete VPN. Il sistema operativo vede una nuova interfaccia, per esempio `wg0`, come se fosse una scheda di rete aggiuntiva.
+
+Il percorso diventa questo:
+
+<Diagram code="
+flowchart LR
+    A[Client remoto] --> B[Tunnel VPN cifrato]
+    B --> C[Server VPN]
+    C --> D[Rete privata o servizi interni]
+" />
+
+La parte importante è che il traffico non viaggia in chiaro. Chi osserva la rete esterna vede una comunicazione cifrata tra client e server, non il contenuto reale dei pacchetti.
+
+<StepCard label="A" title="Installare WireGuard sul server">
+
+Sul server Linux installiamo WireGuard usando il package manager della distribuzione.
+
+Per Debian o Ubuntu:
+
+<Terminal code="
+sudo apt update
+sudo apt install wireguard
+" />
+
+Il pacchetto installa gli strumenti principali, tra cui `wg` e `wg-quick`.
+
+`wg` serve per vedere e gestire lo stato di WireGuard.
+
+`wg-quick` serve per avviare e fermare rapidamente un'interfaccia VPN partendo da un file di configurazione.
+
+</StepCard>
+
+<StepCard label="B" title="Generare le chiavi del server">
+
+WireGuard usa una coppia di chiavi per ogni peer: una chiave privata e una chiave pubblica.
+
+Sul server generiamo le chiavi:
+
+<Terminal code="
+wg genkey | tee server_private.key | wg pubkey > server_public.key
+" />
+
+Poi leggiamo i valori generati:
+
+<Terminal code="
+cat server_private.key
+cat server_public.key
+" />
+
+La chiave privata resta sul server. La chiave pubblica può essere condivisa con i client.
+
+<Warning>
+La chiave privata identifica il peer. Se viene esposta, va considerata compromessa e deve essere rigenerata.
+</Warning>
+
+</StepCard>
+
+<StepCard label="C" title="Creare la configurazione del server">
+
+Creiamo il file di configurazione dell'interfaccia `wg0`.
+
+<Terminal code="
+sudo nano /etc/wireguard/wg0.conf
+" />
+
+Esempio di configurazione server:
+
+<Terminal code="
+[Interface]
+Address = 10.10.10.1/24
+ListenPort = 51820
+PrivateKey = INSERISCI_CHIAVE_PRIVATA_SERVER
+
+[Peer]
+PublicKey = INSERISCI_CHIAVE_PUBBLICA_CLIENT
+AllowedIPs = 10.10.10.2/32
+"/>
+
+Spiegazione dei campi principali:
+
+<ul className="list-disc pl-6 space-y-1 mb-4">
+    <li>`Address` assegna l'indirizzo VPN al server;</li>
+    <li>`ListenPort` indica la porta UDP su cui il server resta in ascolto;</li>
+    <li>`PrivateKey` e la chiave privata del server;</li>
+    <li>`PublicKey` e la chiave pubblica del client autorizzato;</li>
+    <li>`AllowedIPs` indica quali IP sono associati a quel peer.</li>
+</ul>
+
+</StepCard>
+
+<StepCard label="D" title="Aprire la porta sul firewall">
+
+Il server deve ricevere traffico UDP sulla porta `51820`.
+
+Se usi UFW:
+
+<Terminal code="
+sudo ufw allow 51820/udp
+sudo ufw status
+" />
+
+Se il server e dietro un router o un firewall esterno, devi anche configurare il port forwarding verso l'IP privato del server.
+
+<Info>
+WireGuard usa UDP. Se apri solo TCP sulla porta 51820, la VPN non rispondera correttamente.
+</Info>
+
+</StepCard>
+
+<StepCard label="E" title="Abilitare e avviare la VPN sul server">
+
+Prima proteggiamo i permessi del file di configurazione.
+
+<Terminal code="
+sudo chmod 600 /etc/wireguard/wg0.conf
+" />
+
+Poi avviamo l'interfaccia VPN:
+
+<Terminal code="
+sudo wg-quick up wg0
+" />
+
+Per abilitarla automaticamente all'avvio del server:
+
+<Terminal code="
+sudo systemctl enable wg-quick@wg0
+" />
+
+Verifichiamo lo stato:
+
+<Terminal code="
+sudo wg
+ip address show wg0
+" />
+
+Se l'interfaccia `wg0` esiste e mostra l'indirizzo `10.10.10.1/24`, la parte server è attiva.
+
+</StepCard>
+
+<StepCard label="F" title="Generare le chiavi del client">
+
+Sul client generiamo un'altra coppia di chiavi.
+
+<Terminal code="
+wg genkey | tee client_private.key | wg pubkey > client_public.key
+" />
+
+La chiave pubblica del client deve essere inserita nella sezione `[Peer]` del server.
+
+La chiave pubblica del server dovra invece essere inserita nella configurazione del client.
+
+</StepCard>
+
+<StepCard label="G" title="Creare la configurazione del client">
+
+Sul client creiamo il file `wg0.conf`.
+
+Esempio:
+
+<Terminal code="
+[Interface]
+Address = 10.10.10.2/32
+PrivateKey = INSERISCI_CHIAVE_PRIVATA_CLIENT
+DNS = 1.1.1.1
+
+[Peer]
+PublicKey = INSERISCI_CHIAVE_PUBBLICA_SERVER
+Endpoint = IP_PUBBLICO_SERVER:51820
+AllowedIPs = 10.10.10.0/24
+PersistentKeepalive = 25
+"/>
+
+`Endpoint` indica dove si trova il server VPN.
+
+`AllowedIPs` indica quali destinazioni devono passare nel tunnel. In questo esempio passa solo il traffico diretto alla rete VPN `10.10.10.0/24`.
+
+`PersistentKeepalive` e utile quando il client si trova dietro NAT, per esempio in una rete domestica.
+
+<Note>
+Se vuoi che tutto il traffico Internet del client passi nella VPN, `AllowedIPs` diventa `0.0.0.0/0`. In quel caso pero devi configurare anche forwarding e NAT sul server.
+</Note>
+
+</StepCard>
+
+<StepCard label="H" title="Avviare la VPN sul client">
+
+Avviamo il tunnel dal client:
+
+<Terminal code="
+sudo wg-quick up wg0
+" />
+
+Poi controlliamo lo stato:
+
+<Terminal code="
+sudo wg
+ip route
+" />
+
+Se la configurazione è corretta, dovresti vedere un handshake recente tra client e server.
+
+Per testare la comunicazione:
+
+<Terminal code="
+ping 10.10.10.1
+" />
+
+Se il ping risponde, il client sta raggiungendo il server attraverso il tunnel VPN.
+
+</StepCard>
+
+
+<SectionTitle>Verifiche utili</SectionTitle>
+
+Quando una VPN non funziona, il problema di solito e in uno di questi punti:
+
+<ul className="list-disc pl-6 space-y-1 mb-4">
+    <li>porta UDP non aperta sul firewall;</li>
+    <li>endpoint pubblico sbagliato;</li>
+    <li>chiave pubblica inserita nel peer sbagliato;</li>
+    <li>`AllowedIPs` non coerenti;</li>
+    <li>orario del sistema molto fuori sincronizzazione;</li>
+    <li>NAT o port forwarding non configurato.</li>
+</ul>
+
+Comandi utili per diagnosticare:
+
+<Terminal code="
+sudo wg
+sudo systemctl status wg-quick@wg0
+sudo journalctl -u wg-quick@wg0
+ip address
+ip route
+" />
+
+Nel comando `sudo wg`, il campo piu importante e `latest handshake`. Se resta vuoto, client e server non si stanno parlando correttamente.
+
+<SectionTitle> VPN site-to-site e remote access </SectionTitle>
+
+Esistono due scenari molto comuni:
+
+<div className="table-container">
+    <table className='my-custom-table'>
+        <thead>
+            <tr>
+                <th>Tipo</th>
+                <th>Uso</th>
+                <th>Esempio</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Remote access</td>
+                <td>Un singolo client entra nella rete privata</td>
+                <td>Portatile che accede ai servizi interni</td>
+            </tr>
+            <tr>
+                <td>Site-to-site</td>
+                <td>Due reti intere vengono collegate tra loro</td>
+                <td>Sede A collegata alla sede B</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+Nel primo caso il protagonista e il client remoto. Nel secondo caso la VPN lavora tra router, firewall o server che rappresentano due reti diverse.
+
+<SectionTitle> Conclusione </SectionTitle>
+
+Una VPN permette di estendere una rete privata attraverso Internet usando un tunnel cifrato.
+
+Nel lab abbiamo visto i concetti fondamentali:
+
+<ul className="list-disc pl-6 space-y-1 mb-4">
+    <li>la VPN non e una rete magica, ma un'interfaccia virtuale con routing e crittografia;</li>
+    <li>ogni peer ha una coppia di chiavi;</li>
+    <li>il server deve essere raggiungibile su una porta UDP;</li>
+    <li>`AllowedIPs` decide quali reti passano nel tunnel;</li>
+    <li>la verifica principale e il controllo dell'handshake.</li>
+</ul>
+
+Capire questi elementi rende molto piu semplice configurare VPN piu avanzate, collegare piu client o costruire scenari site-to-site.
